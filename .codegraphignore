@@ -1,0 +1,13 @@
+﻿# Ignore heavy/legacy for clean TARS knowledge graph
+CORVO/
+node_modules/
+.venv/
+backend/.venv/
+logs/
+data/
+grokassets/
+__pycache__/
+*.log
+*.pyc
+tars-dashboard.log
+tars-backend.log

@@ -1,0 +1,22 @@
+{
+  "id": "kamui_call",
+  "name": "Chamada Kamui",
+  "description": "Capacidade cross-dimensão: chama um endpoint arbitrário através da ponte Kamui (ou outra ponte registrada), abrindo acesso ao ecossistema.",
+  "category": "hub",
+  "kind": "tool",
+  "provider": "tars",
+  "capabilities": ["integração", "kamui", "cross-dimensão"],
+  "tags": ["kamui", "bridge", "hub"],
+  "prompt_instruction": "Use para alcançar recursos do Kamui e do ecossistema. Informe endpoint e method; body para POST/PUT.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "endpoint": { "type": "string", "description": "caminho no serviço (ex: /kamui/health)" },
+      "method": { "type": "string", "enum": ["GET", "POST", "PUT", "DELETE", "PATCH"] },
+      "bridge": { "type": "string", "description": "ponte alvo (default 'kamui')" },
+      "body": { "type": "object", "description": "corpo para métodos de escrita" }
+    },
+    "required": ["endpoint"]
+  },
+  "invoke": { "type": "builtin", "handler": "kamui_call" }
+}

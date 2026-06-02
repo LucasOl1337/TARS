@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" fill="none">
+  <rect width="1920" height="1080" fill="#050308"/>
+  <!-- Elegant orbital monolith -->
+  <g transform="translate(720, 240)">
+    <rect x="80" y="0" width="140" height="520" rx="8" fill="#f0f4f8" opacity="0.95"/>
+    <rect x="95" y="30" width="110" height="8" fill="#8a96a3" opacity="0.6"/>
+    <rect x="95" y="60" width="110" height="8" fill="#8a96a3" opacity="0.6"/>
+    <rect x="95" y="90" width="70" height="4" fill="#b85a42" opacity="0.7"/>
+  </g>
+  <text x="960" y="860" font-family="system-ui, sans-serif" font-size="92" font-weight="600" fill="#f0f4f8" letter-spacing="12" text-anchor="middle">TARS</text>
+</svg>

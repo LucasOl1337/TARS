@@ -1,0 +1,22 @@
+{
+  "id": "spawn_subagent",
+  "name": "Spawn Sub-agente",
+  "description": "Decompõe o trabalho: cria um objetivo-filho com seu próprio critério de sucesso e o executa em um loop agêntico isolado (recursão limitada). Devolve o resultado do filho.",
+  "category": "agente",
+  "kind": "tool",
+  "provider": "tars",
+  "capabilities": ["decomposição", "orquestração", "sub-agente"],
+  "tags": ["subagent", "spawn", "decompose"],
+  "prompt_instruction": "Use para dividir um objetivo grande em uma sub-tarefa autocontida e verificável. Defina um definition_of_done claro para o filho.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "title": { "type": "string", "description": "título do sub-objetivo" },
+      "description": { "type": "string" },
+      "definition_of_done": { "type": "string", "description": "critério de sucesso do filho" },
+      "max_iterations": { "type": "integer" }
+    },
+    "required": ["title"]
+  },
+  "invoke": { "type": "builtin", "handler": "spawn_subagent" }
+}

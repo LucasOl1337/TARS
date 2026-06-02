@@ -1,0 +1,21 @@
+{
+  "id": "shell_exec",
+  "name": "Shell Exec",
+  "description": "Executa um comando de terminal dentro do workspace (sandbox), sob allowlist/denylist da governança. Devolve exit_code, stdout e stderr.",
+  "category": "sistema",
+  "kind": "tool",
+  "provider": "tars",
+  "capabilities": ["terminal", "execução", "dev"],
+  "tags": ["shell", "terminal", "exec"],
+  "prompt_instruction": "Use para rodar comandos: testes, scripts, git (sem push), build, lint. Comandos destrutivos e irreversíveis são bloqueados automaticamente.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "command": { "type": "string", "description": "comando a executar" },
+      "cwd": { "type": "string", "description": "diretório relativo ao workspace (opcional)" },
+      "timeout": { "type": "integer", "description": "timeout em segundos (default 120, máx 600)" }
+    },
+    "required": ["command"]
+  },
+  "invoke": { "type": "builtin", "handler": "shell_exec" }
+}

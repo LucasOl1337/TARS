@@ -1,0 +1,18 @@
+{
+  "id": "bridge_call",
+  "name": "Chamada de Ponte",
+  "description": "Alcança o ecossistema pelas pontes do hub. Por padrão sonda o Yume (cérebro de personas); o proxy genérico /api/tars/bridge/<id>/* cobre chamadas arbitrárias.",
+  "category": "hub",
+  "kind": "bridge",
+  "provider": "tars",
+  "capabilities": ["integração", "ponte", "hub"],
+  "tags": ["bridge", "yume", "kamui"],
+  "prompt_instruction": "Use para verificar/usar serviços-ponte. Esta entrada sonda a saúde do Yume; para chamadas específicas, o orquestrador usa o proxy de pontes.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "bridge": { "type": "string", "enum": ["yume", "kamui"], "description": "ponte alvo" }
+    }
+  },
+  "invoke": { "type": "bridge", "bridge": "yume", "method": "GET", "endpoint": "/api/health" }
+}

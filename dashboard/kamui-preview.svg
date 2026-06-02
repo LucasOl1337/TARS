@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="420" height="420">
+  <defs>
+    <radialGradient id="iris" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ff5b4a"/>
+      <stop offset="14%" stop-color="#ef3326"/>
+      <stop offset="38%" stop-color="#c11d1a"/>
+      <stop offset="64%" stop-color="#8a1316"/>
+      <stop offset="86%" stop-color="#5a0c12"/>
+      <stop offset="100%" stop-color="#360810"/>
+    </radialGradient>
+    <radialGradient id="globe" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#1a0810"/>
+      <stop offset="78%" stop-color="#0a0309"/>
+      <stop offset="100%" stop-color="#03010a"/>
+    </radialGradient>
+    <radialGradient id="limbal" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="rgba(20,3,8,0)"/>
+      <stop offset="78%" stop-color="rgba(20,3,8,0)"/>
+      <stop offset="90%" stop-color="rgba(28,4,10,0.55)"/>
+      <stop offset="100%" stop-color="rgba(8,1,6,0.95)"/>
+    </radialGradient>
+    <radialGradient id="tomoe" cx="38%" cy="30%" r="80%">
+      <stop offset="0%" stop-color="#2a0a12"/>
+      <stop offset="45%" stop-color="#0e0309"/>
+      <stop offset="100%" stop-color="#030005"/>
+    </radialGradient>
+    <radialGradient id="pupil" cx="42%" cy="38%" r="70%">
+      <stop offset="0%" stop-color="#1c0610"/>
+      <stop offset="55%" stop-color="#0a020a"/>
+      <stop offset="100%" stop-color="#020005"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="200" height="200" fill="#06030a"/>
+  <circle cx="100" cy="100" r="78" fill="url(#globe)"/>
+  <circle cx="100" cy="100" r="78" fill="url(#iris)"/>
+
+  <circle cx="100" cy="100" r="40" fill="none" stroke="rgba(60,8,14,0.28)" stroke-width="0.6"/>
+  <circle cx="100" cy="100" r="52" fill="none" stroke="rgba(60,8,14,0.28)" stroke-width="0.6"/>
+  <circle cx="100" cy="100" r="63" fill="none" stroke="rgba(60,8,14,0.28)" stroke-width="0.6"/>
+
+  <circle cx="100" cy="100" r="78" fill="url(#limbal)"/>
+  <circle cx="100" cy="100" r="74" fill="none" stroke="rgba(5,0,4,0.6)" stroke-width="8"/>
+
+  <!-- Mangekyō pinwheel: BLADE_PATH = magatama(36,22) -->
+  <g>
+    <g transform="rotate(0 100 100) translate(100 136)">
+      <path d="M 0 -36 a 36 36 0 0 1 0 72 a 22 22 0 0 1 0 -44 a 14 14 0 0 0 0 -28 Z" fill="#050006" opacity="0.45" transform="translate(0 1.6)"/>
+      <path d="M 0 -36 a 36 36 0 0 1 0 72 a 22 22 0 0 1 0 -44 a 14 14 0 0 0 0 -28 Z" fill="url(#tomoe)"/>
+      <circle cx="7" cy="16" r="4" fill="rgba(255,150,140,0.14)"/>
+    </g>
+    <g transform="rotate(120 100 100) translate(100 136)">
+      <path d="M 0 -36 a 36 36 0 0 1 0 72 a 22 22 0 0 1 0 -44 a 14 14 0 0 0 0 -28 Z" fill="#050006" opacity="0.45" transform="translate(0 1.6)"/>
+      <path d="M 0 -36 a 36 36 0 0 1 0 72 a 22 22 0 0 1 0 -44 a 14 14 0 0 0 0 -28 Z" fill="url(#tomoe)"/>
+      <circle cx="7" cy="16" r="4" fill="rgba(255,150,140,0.14)"/>
+    </g>
+    <g transform="rotate(240 100 100) translate(100 136)">
+      <path d="M 0 -36 a 36 36 0 0 1 0 72 a 22 22 0 0 1 0 -44 a 14 14 0 0 0 0 -28 Z" fill="#050006" opacity="0.45" transform="translate(0 1.6)"/>
+      <path d="M 0 -36 a 36 36 0 0 1 0 72 a 22 22 0 0 1 0 -44 a 14 14 0 0 0 0 -28 Z" fill="url(#tomoe)"/>
+      <circle cx="7" cy="16" r="4" fill="rgba(255,150,140,0.14)"/>
+    </g>
+  </g>
+
+  <circle cx="100" cy="100" r="19" fill="url(#pupil)"/>
+  <circle cx="100" cy="100" r="19" fill="none" stroke="rgba(255,80,60,0.18)" stroke-width="0.8"/>
+</svg>

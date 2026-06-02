@@ -1,0 +1,20 @@
+{
+  "id": "web_search",
+  "name": "Busca Web",
+  "description": "Busca na web (best-effort, via DuckDuckGo) e devolve uma lista de títulos + URLs.",
+  "category": "web",
+  "kind": "tool",
+  "provider": "tars",
+  "capabilities": ["web", "busca"],
+  "tags": ["web", "search"],
+  "prompt_instruction": "Use para descobrir fontes/URLs sobre um assunto; depois leia com web_fetch.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "query": { "type": "string", "description": "termos de busca" },
+      "max_results": { "type": "integer", "description": "máx de resultados (default 8)" }
+    },
+    "required": ["query"]
+  },
+  "invoke": { "type": "builtin", "handler": "web_search" }
+}

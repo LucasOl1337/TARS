@@ -1,0 +1,23 @@
+{
+  "id": "llm_subcall",
+  "name": "Sub-chamada de LLM",
+  "description": "Chama um modelo de linguagem para uma sub-tarefa isolada (resumir, extrair, classificar, gerar rascunho). Não tem acesso a ferramentas — é um processamento puro de texto.",
+  "category": "inteligencia",
+  "kind": "tool",
+  "provider": "tars",
+  "capabilities": ["llm", "raciocínio", "delegação"],
+  "tags": ["llm", "subcall"],
+  "prompt_instruction": "Use para delegar processamento de texto pesado sem poluir seu próprio contexto. Passe um 'prompt' claro.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "prompt": { "type": "string", "description": "tarefa para o sub-modelo" },
+      "system": { "type": "string", "description": "instrução de sistema (opcional)" },
+      "model": { "type": "string", "description": "modelo (opcional; default = modelo do TARS)" },
+      "temperature": { "type": "number" },
+      "max_tokens": { "type": "integer" }
+    },
+    "required": ["prompt"]
+  },
+  "invoke": { "type": "builtin", "handler": "llm_subcall" }
+}

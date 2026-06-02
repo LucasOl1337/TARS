@@ -1,0 +1,18 @@
+{
+  "id": "fs_list",
+  "name": "Listar Diretório",
+  "description": "Lista arquivos e subdiretórios de um caminho dentro do workspace (sandbox).",
+  "category": "sistema",
+  "kind": "tool",
+  "provider": "tars",
+  "capabilities": ["filesystem", "listagem"],
+  "tags": ["fs", "list", "dir"],
+  "prompt_instruction": "Use para explorar a estrutura do workspace.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "path": { "type": "string", "description": "caminho relativo ao workspace (default '.')" }
+    }
+  },
+  "invoke": { "type": "builtin", "handler": "fs_list" }
+}

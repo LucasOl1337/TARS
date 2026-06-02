@@ -1,0 +1,18 @@
+{
+  "id": "astro_lookup",
+  "name": "Consulta Astronômica",
+  "description": "Consulta offline de corpos do sistema solar: eixo semi-maior, período orbital e luas conhecidas.",
+  "category": "astronomia",
+  "kind": "tool",
+  "provider": "tars",
+  "capabilities": ["astronomia", "consulta"],
+  "tags": ["planetas", "sistema solar", "offline"],
+  "prompt_instruction": "Use para dados de planetas. Sem 'body', lista os corpos disponíveis. Aceita nomes em pt (terra, marte...).",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "body": { "type": "string", "description": "corpo do sistema solar (ex.: mars, terra, jupiter)" }
+    }
+  },
+  "invoke": { "type": "builtin", "handler": "astro_lookup" }
+}

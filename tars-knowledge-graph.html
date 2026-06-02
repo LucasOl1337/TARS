@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TARS — Knowledge Graph • Interactive</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap');
+  
+  :root {
+    --void: #080a0e;
+    --void2: #0e1116;
+    --steel: #dfe6ee;
+    --steel-deep: #9aa6b4;
+  }
+  
+  body {
+    font-family: 'Inter', system_ui, sans-serif;
+    background: #080a0e;
+    color: #eef2f7;
+  }
+  
+  .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  
+  .graph-node {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+  }
+  
+  .graph-node:hover {
+    transform: translateY(-2px) scale(1.02);
+    filter: brightness(1.1);
+  }
+  
+  .section-backend { background: linear-gradient(135deg, #1a2330 0%, #11151f 100%); border-color: #4a5a70; }
+  .section-frontend { background: linear-gradient(135deg, #1f2a22 0%, #11151f 100%); border-color: #4a6a55; }
+  .section-client { background: linear-gradient(135deg, #2a1f2a 0%, #11151f 100%); border-color: #6a5570; }
+  
+  .flow-arrow {
+    stroke: #8893a5;
+    stroke-width: 1.5;
+    marker-end: url(#arrowhead);
+  }
+  
+  .status-dot { width: 10px; height: 10px; border-radius: 9999px; }
+  .status-funcional { background: #54d6a4; }
+  .status-parcial { background: #e0a846; }
+  .status-quebrada { background: #e8746b; }
+  .status-incerta { background: #8893a5; }
+  
+  .card {
+    transition: transform 0.2s cubic-bezier(0.4,0,0.2,1), box-shadow 0.2s;
+  }
+  .card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  }
+  
+  .nav-active {
+    background: rgba(223,230,238,0.08);
+    border-left: 3px solid #dfe6ee;
+    color: #dfe6ee;
+  }
+  
+  .node-pill {
+    font-size: 11px;
+    padding: 2px 9px;
+    border-radius: 9999px;
+    background: rgba(223,230,238,0.08);
+    border: 1px solid rgba(223,230,238,0.15);
+  }
+</style>
+</head>
+<body class="min-h-screen">
+  <!-- Topbar -->
+  <div class="border-b border-white/10 bg-[#0a0c12] sticky top-0 z-50">
+    <div class="max-w-[1400px] mx-auto px-6 h-14 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-[#dfe6ee] to-[#9aa6b4] flex items-center justify-center">
+          <span class="text-[#080a0e] font-bold text-xl tracking-[-2px]">T</span>
+        </div>
+        <div>
+          <span class="font-semibold tracking-[3px] text-lg">TARS</span>
+          <span class="text-xs text-white/40 ml-2 tracking-widest">KNOWLEDGE GRAPH</span>
+        </div>
+      </div>
+      
+      <div class="flex items-center gap-2 text-sm">
+        <div class="px-3 py-1 rounded-full bg-white/5 text-white/60 text-xs flex items-center gap-2">
+          <div class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+          INDEXED • v0.9.4
+        </div>
+        <button onclick="window.location.reload()" 
+                class="px-3 py-1 text-xs rounded-lg border border-white/10 hover:bg-white/5 flex items-center gap-1.5">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.058 11H1M12 3v2m0 16v2m9-9H15m-6 0a8 8 0 01-.937-1.5" />
+          </svg>
+          RELOAD
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="max-w-[1400px] mx-auto px-6 pt-8 pb-12">
+    <!-- Header -->
+    <div class="flex items-end justify-between mb-8">
+      <div>
+        <h1 class="text-5xl font-semibold tracking-tighter">TARS Knowledge Graph</h1>
+        <p class="text-white/50 mt-1 text-lg">Análise completa • 31/05/2026 • Apenas TARS (CORVO ignorado)</p>
+      </div>
+      <div class="text-right text-sm text-white/40">
+        <div>Backend (Python) + Dashboard (React 19)</div>
+        <div class="text-emerald-400">2 seções principais indexadas</div>
+      </div>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+      <div class="rounded-2xl border border-white/10 bg-white/[0.015] p-4">
+        <div class="text-xs text-white/40 tracking-widest">ARQUIVOS CORE</div>
+        <div class="text-4xl font-semibold mt-1 text-[#dfe6ee]">~48</div>
+        <div class="text-emerald-400 text-xs mt-1">backend + dashboard/src</div>
+      </div>
+      <div class="rounded-2xl border border-white/10 bg-white/[0.015] p-4">
+        <div class="text-xs text-white/40 tracking-widest">ROTAS API</div>
+        <div class="text-4xl font-semibold mt-1 text-[#dfe6ee]">25+</div>
+        <div class="text-emerald-400 text-xs mt-1">/api/tars/* + compat /kamui</div>
+      </div>
+      <div class="rounded-2xl border border-white/10 bg-white/[0.015] p-4">
+        <div class="text-xs text-white/40 tracking-widest">FERRAMENTAS</div>
+        <div class="text-4xl font-semibold mt-1 text-[#dfe6ee]">5</div>
+        <div class="text-emerald-400 text-xs mt-1">think • mission_log • orbital_calc • astro_lookup • bridge_call</div>
+      </div>
+      <div class="rounded-2xl border border-white/10 bg-white/[0.015] p-4">
+        <div class="text-xs text-white/40 tracking-widest">STATUS GERAL</div>
+        <div class="text-4xl font-semibold mt-1 text-amber-400">PARCIAL</div>
+        <div class="text-xs text-white/50 mt-1">Chat sem UI • Persona dual • Sem auth</div>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="flex gap-2 mb-6 border-b border-white/10 pb-3">
+      <button onclick="document.getElementById('section-1').scrollIntoView({behavior:'smooth'})" 
+              class="px-4 py-1.5 text-sm rounded-xl bg-white/5 hover:bg-white/10">1. Cliente / Usuário</button>
+      <button onclick="document.getElementById('section-2').scrollIntoView({behavior:'smooth'})" 
+              class="px-4 py-1.5 text-sm rounded-xl bg-white/5 hover:bg-white/10">2. Backend + Hub</button>
+      <button onclick="document.getElementById('section-3').scrollIntoView({behavior:'smooth'})" 
+              class="px-4 py-1.5 text-sm rounded-xl bg-white/5 hover:bg-white/10">3. Frontend Structure</button>
+      <button onclick="document.getElementById('flows').scrollIntoView({behavior:'smooth'})" 
+              class="px-4 py-1.5 text-sm rounded-xl bg-white/5 hover:bg-white/10 ml-auto">Fluxos Principais</button>
+    </div>
+
+    <!-- SECTION 1: CLIENT -->
+    <div id="section-1" class="mb-10">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="node-pill text-[#c084fc]">01</div>
+        <h2 class="text-2xl font-semibold tracking-tight">Funções de uso do cliente / usuário comum</h2>
+      </div>
+      
+      <div class="grid md:grid-cols-3 gap-4">
+        <!-- Card: Dashboard -->
+        <div class="card rounded-2xl border border-white/10 p-5 section-client">
+          <div class="flex justify-between">
+            <div>
+              <div class="font-semibold">Dimension / Hero</div>
+              <div class="text-xs text-white/50">Overview visual do vazio</div>
+            </div>
+            <div class="status-dot status-funcional"></div>
+          </div>
+          <div class="mt-4 text-sm text-white/70 leading-relaxed">
+            Tela inicial com monolito orbital animado (KamuiVoid SVG), stats de bridges/echoes em tempo real e mensagem de estado.
+          </div>
+          <div class="mt-4 flex flex-wrap gap-1 text-[10px]">
+            <span class="px-2 py-0.5 bg-white/5 rounded">Dashboard.tsx</span>
+            <span class="px-2 py-0.5 bg-white/5 rounded">KamuiVoid.tsx</span>
+          </div>
+          <div class="text-emerald-400 text-xs mt-3">FUNCIONAL • Polling 15s</div>
+        </div>
+
+        <!-- Card: Endpoints -->
+        <div class="card rounded-2xl border border-white/10 p-5 section-client">
+          <div class="flex justify-between">
+            <div>
+              <div class="font-semibold">Endpoints + Live Tester</div>
+              <div class="text-xs text-white/50">Dev console completo</div>
+            </div>
+            <div class="status-dot status-funcional"></div>
+          </div>
+          <div class="mt-4 text-sm text-white/70 leading-relaxed">
+            Catálogo visual de todos os módulos (Intelligence, Tools, Bridges, Yume, Kamui). Testes ao vivo, upload de imagem por card (localStorage), ResultPanel com timing.
+          </div>
+          <div class="mt-4 flex flex-wrap gap-1 text-[10px]">
+            <span class="px-2 py-0.5 bg-white/5 rounded">EndpointsPage.tsx (~800 LOC)</span>
+          </div>
+          <div class="text-emerald-400 text-xs mt-3">MUITO COMPLETO • Feature mais rica do front</div>
+        </div>
+
+        <!-- Card: Persona -->
+        <div class="card rounded-2xl border border-white/10 p-5 section-client">
+          <div class="flex justify-between">
+            <div>
+              <div class="font-semibold">Persona Switcher</div>
+              <div class="text-xs text-white/50">Troca de cérebro Yume</div>
+            </div>
+            <div class="status-dot status-parcial"></div>
+          </div>
+          <div class="mt-4 text-sm text-white/70 leading-relaxed">
+            Lista personas do Yume via proxy e permite definir a "active persona" que o TARS usa.
+          </div>
+          <div class="mt-4 text-xs bg-amber-500/10 text-amber-400 px-2 py-1 rounded">
+            PARCIAL — Inútil sem Yume + Kamui rodando
+          </div>
+        </div>
+
+        <!-- Card: Chat -->
+        <div class="card rounded-2xl border border-white/10 p-5 section-client md:col-span-3">
+          <div class="flex justify-between items-start">
+            <div>
+              <div class="font-semibold text-lg">Chat com TARS (Inteligência)</div>
+              <div class="text-white/50">A feature principal da IA de bordo</div>
+            </div>
+            <div class="status-dot status-quebrada"></div>
+          </div>
+          <div class="mt-3 text-sm text-white/70">
+            Backend completo (brain.py + multi-provider LLM + system prompt dinâmico a partir da persona do SQLite + tools). 
+            <span class="text-red-400 font-medium">NÃO EXISTE UI NO DASHBOARD ATIVO.</span> Só acessível via API POST /api/tars/chat.
+          </div>
+          <div class="mt-3 text-xs text-red-400">MAIOR GAP ATUAL • Usuário comum não consegue conversar com o TARS pelo browser</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 2: BACKEND -->
+    <div id="section-2" class="mb-10">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="node-pill text-[#60a5fa]">02</div>
+        <h2 class="text-2xl font-semibold tracking-tight">Funções de estrutura e backend</h2>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-4">
+        <div class="card rounded-2xl border border-white/10 p-5 section-backend">
+          <div class="font-semibold mb-2 flex items-center gap-2">brain.py + dispatch_llm</div>
+          <div class="text-sm text-white/70">Composição de system prompt por blocos (PROMPT_FLOW) + roteamento inteligente para GLM / Kimi / Anthropic / OpenRouter com fallback de chaves.</div>
+          <div class="mt-3 text-xs text-blue-400">FUNCIONAL • Excelente qualidade</div>
+        </div>
+
+        <div class="card rounded-2xl border border-white/10 p-5 section-backend">
+          <div class="font-semibold mb-2 flex items-center gap-2">bridges.py + proxy genérico</div>
+          <div class="text-sm text-white/70">Registro imutável das pontes (Yume + Kamui). call_bridge com envelope canônico, log_echo obrigatório, health polling 30s, /echoes/flows com trace_id.</div>
+          <div class="mt-3 text-xs text-blue-400">O CORAÇÃO DO HUB • Muito bem feito</div>
+        </div>
+
+        <div class="card rounded-2xl border border-white/10 p-5 section-backend">
+          <div class="font-semibold mb-2">tools.py (5 ferramentas modulares)</div>
+          <div class="text-sm text-white/70">think, mission_log, astro_lookup, orbital_calc (física real Hohmann + período), bridge_call. Executores builtin + bridge.</div>
+        </div>
+
+        <div class="card rounded-2xl border border-white/10 p-5 section-backend">
+          <div class="font-semibold mb-2">server.py (FastAPI)</div>
+          <div class="text-sm text-white/70">25+ rotas + duas montagens do router (/api/tars + /api/kamui para compat). Proxy universal, Yume passthrough, services matrix, ports scanner Windows.</div>
+          <div class="mt-2 text-xs text-amber-400">Sem autenticação • Sem rate limit</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 3: FRONTEND -->
+    <div id="section-3" class="mb-10">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="node-pill text-[#f472b6]">03</div>
+        <h2 class="text-2xl font-semibold tracking-tight">Funções de estrutura frontend</h2>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-4 text-sm">
+        <div class="card rounded-2xl border border-white/10 p-5 section-frontend">
+          <div class="font-medium">Design System Asiimov</div>
+          <div class="mt-2 text-white/60">useTheme + CSS vars + void-panel, rift-item, sticky-card, signature "Lucas", animações orbitais puras.</div>
+          <div class="text-xs mt-3 text-pink-400">Tema reaproveitado do Kamui (vermelho → branco-aço)</div>
+        </div>
+        <div class="card rounded-2xl border border-white/10 p-5 section-frontend">
+          <div class="font-medium">KamuiVoid (Brand)</div>
+          <div class="mt-2 text-white/60">SVG complexo (monólito + 3 anéis + retícula HUD + 22 partículas). Zero dependência externa.</div>
+        </div>
+        <div class="card rounded-2xl border border-white/10 p-5 section-frontend">
+          <div class="font-medium">Código Morto / Legado</div>
+          <ul class="mt-2 text-xs text-white/50 space-y-1">
+            <li>• CORVO/ (dashboard completo com 8 páginas + node_modules gigante)</li>
+            <li>• frontend/ (versão antiga React 18)</li>
+            <li>• backend/src/ (tentativa Node/Express abandonada)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- FLOWS -->
+    <div id="flows" class="mb-10">
+      <h2 class="text-2xl font-semibold tracking-tight mb-4">Mapa dos Principais Fluxos</h2>
+      
+      <div class="rounded-3xl border border-white/10 bg-[#0c0f15] p-6">
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4 text-sm">
+          <div class="p-3 rounded-2xl bg-white/5">
+            <div class="text-emerald-400 text-xs mb-1">1. BOOT</div>
+            start-tars.ps1 → backend (lifespan: init_db + seed persona + poll) → dashboard (Vite + proxy)
+          </div>
+          <div class="p-3 rounded-2xl bg-white/5">
+            <div class="text-emerald-400 text-xs mb-1">2. CHAT</div>
+            POST /chat → build_system_prompt (persona DB + tools) → provider_for_model → LLM
+          </div>
+          <div class="p-3 rounded-2xl bg-white/5">
+            <div class="text-emerald-400 text-xs mb-1">3. TOOL</div>
+            LLM pede → /tools/{id}/invoke → builtin (Python) OU bridge proxy + log_echo obrigatório
+          </div>
+          <div class="p-3 rounded-2xl bg-white/5">
+            <div class="text-emerald-400 text-xs mb-1">4. PROXY</div>
+            Qualquer chamada → call_bridge (httpx) → log_echo (trace_id) → envelope canônico
+          </div>
+          <div class="p-3 rounded-2xl bg-white/5">
+            <div class="text-emerald-400 text-xs mb-1">5. OBSERVABILIDADE</div>
+            Echoes/flows + bridges/status + ports + services (derivado)
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RISCOS + NEXT -->
+    <div class="grid md:grid-cols-2 gap-4">
+      <div class="rounded-2xl border border-red-500/30 bg-red-500/5 p-5">
+        <div class="font-semibold text-red-400">Pontos Críticos / Riscos</div>
+        <ul class="mt-3 text-sm space-y-1.5 text-white/80">
+          <li>• Zero autenticação em todo o sistema</li>
+          <li>• Persona dual confusa (local SQLite vs /persona/active do Yume)</li>
+          <li>• Chat (principal feature) sem nenhuma UI</li>
+          <li>• Forte dependência de Yume + Kamui externos</li>
+          <li>• Duplicação massiva (CORVO + frontend + backend/src)</li>
+          <li>• Sem migrations no SQLite</li>
+        </ul>
+      </div>
+      <div class="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-5">
+        <div class="font-semibold text-emerald-400">Próximos Passos Recomendados</div>
+        <ol class="mt-3 text-sm space-y-1 text-white/80 list-decimal list-inside">
+          <li>Adicionar página de Chat no dashboard</li>
+          <li>UI para editar a persona local TARS (hoje só API crua)</li>
+          <li>Decidir destino do CORVO (deletar ou promover)</li>
+          <li>Portar Echoes/Flows + Ports + Services do legado</li>
+          <li>Autenticação mínima + Docker Compose</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="mt-8 text-center text-[10px] text-white/30">
+      Gerado manualmente a partir de análise completa do código (CodeGraph MCP falhou ao conectar na sessão).<br>
+      Para o grafo interativo completo via MCP, configure no Cursor/Claude: <span class="mono">"codegraph": {"command": "codegraph", "args": ["serve", "--mcp"]}</span>
+    </div>
+  </div>
+
+  <script>
+    // Simple interactivity
+    console.log('%c[TARS Knowledge Graph] Loaded successfully', 'color:#4a5568');
+    
+    // Keyboard hint
+    document.addEventListener('keydown', function(e) {
+      if (e.key === '/' && document.activeElement.tagName === 'BODY') {
+        e.preventDefault();
+        const firstCard = document.querySelector('.card');
+        if (firstCard) firstCard.scrollIntoView({behavior: 'smooth', block: 'center'});
+      }
+    });
+    
+    // Click any card to highlight
+    document.querySelectorAll('.card').forEach(card => {
+      card.addEventListener('click', () => {
+        card.style.transitionDuration = '60ms';
+        card.style.transform = 'scale(0.985)';
+        setTimeout(() => {
+          card.style.transform = '';
+          card.style.transitionDuration = '0.2s';
+        }, 120);
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "id": "mission_log",
+  "name": "Log de Missão",
+  "description": "Registra uma entrada no log de missão (timestamp + categoria). Memória leve de bordo.",
+  "category": "missão",
+  "kind": "tool",
+  "provider": "tars",
+  "capabilities": ["registro", "telemetria"],
+  "tags": ["log", "missão"],
+  "prompt_instruction": "Use para anotar eventos relevantes da missão: decisões, marcos, observações.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "entry": { "type": "string", "description": "texto do log" },
+      "category": { "type": "string", "description": "categoria (ex.: navegação, telemetria, geral)" }
+    },
+    "required": ["entry"]
+  },
+  "invoke": { "type": "builtin", "handler": "mission_log" }
+}

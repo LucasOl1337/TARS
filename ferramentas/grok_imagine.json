@@ -1,0 +1,22 @@
+{
+  "id": "grok_imagine",
+  "name": "Grok Imagine",
+  "description": "Gera uma imagem a partir de um texto usando o Grok Terminal (slash-command nativo /imagine, que usa o Grok Imagine da xAI) e salva o arquivo no destino indicado. Por padrão salva no Desktop da máquina.",
+  "category": "midia",
+  "kind": "tool",
+  "provider": "grok",
+  "capabilities": ["imagem", "geração", "grok", "imagine"],
+  "tags": ["grok", "imagine", "image", "terminal"],
+  "prompt_instruction": "Use para gerar uma imagem via Grok Imagine. Forneça 'prompt' (descrição em inglês funciona melhor) e 'filename' (ex: 'cavalo.png'). Sem 'dest'/'output_path', salva no Desktop do usuário. Cada chamada gera UMA imagem; chame várias vezes para várias imagens. Pode levar ~30-90s por imagem.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "prompt": { "type": "string", "description": "descrição da imagem a gerar" },
+      "filename": { "type": "string", "description": "nome do arquivo de saída, ex: 'cavalo.png' (salvo no Desktop por padrão)" },
+      "dest": { "type": "string", "description": "diretório de destino (opcional; default = Desktop)" },
+      "output_path": { "type": "string", "description": "caminho absoluto completo de saída (opcional; tem prioridade sobre filename/dest)" }
+    },
+    "required": ["prompt"]
+  },
+  "invoke": { "type": "builtin", "handler": "grok_imagine" }
+}

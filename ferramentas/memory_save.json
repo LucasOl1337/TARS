@@ -1,0 +1,23 @@
+{
+  "id": "memory_save",
+  "name": "Salvar Memória",
+  "description": "Salva uma memória durável (episódica = o que aconteceu; semântica = fato/aprendizado). Sobrevive entre objetivos e reinícios.",
+  "category": "memoria",
+  "kind": "tool",
+  "provider": "tars",
+  "capabilities": ["memória", "persistência"],
+  "tags": ["memory", "save"],
+  "prompt_instruction": "Use para guardar aprendizados que ajudarão objetivos futuros (ex: 'o projeto X usa pnpm'). kind='semantic' para fatos duráveis.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "content": { "type": "string", "description": "o que lembrar" },
+      "kind": { "type": "string", "enum": ["episodic", "semantic"] },
+      "category": { "type": "string" },
+      "tags": { "type": "array", "items": { "type": "string" } },
+      "importance": { "type": "integer", "description": "1 a 10" }
+    },
+    "required": ["content"]
+  },
+  "invoke": { "type": "builtin", "handler": "memory_save" }
+}

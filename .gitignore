@@ -1,0 +1,35 @@
+# Segredos — NUNCA commitar
+.env
+**/.env
+*.env.local
+
+# Python
+**/.venv/
+**/__pycache__/
+*.pyc
+backend/.whisper_cache/
+
+# Node / build
+**/node_modules/
+dashboard/dist/
+**/dist/
+
+# Dados / runtime (banco SQLite + WAL/SHM)
+data/*.db
+data/*.db-wal
+data/*.db-shm
+
+# Workspace do agente (artefatos gerados em runtime pelas missões/testes)
+workspace/
+
+# Pasta duplicada do projeto (cópia antiga; o projeto vivo é a raiz)
+CORVO/
+
+# Logs e saídas transitórias de teste/missão
+*.log
+logs/
+backend/*.out
+
+# SO
+Thumbs.db
+.DS_Store

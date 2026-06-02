@@ -1,0 +1,23 @@
+{
+  "id": "orbital_calc",
+  "name": "Cálculo Orbital",
+  "description": "Mecânica orbital básica: período de órbita circular e delta-v de transferência de Hohmann.",
+  "category": "navegação",
+  "kind": "tool",
+  "provider": "tars",
+  "capabilities": ["mecânica orbital", "delta-v", "navegação"],
+  "tags": ["órbita", "hohmann", "delta-v"],
+  "prompt_instruction": "op='period' (precisa r_km) calcula período; op='hohmann' (precisa r1_km e r2_km) calcula delta-v e tempo de transferência. body define o corpo central (sun/earth/mars/moon).",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "op": { "type": "string", "enum": ["period", "hohmann"], "description": "operação" },
+      "body": { "type": "string", "description": "corpo central (sun, earth, mars, moon)" },
+      "r_km": { "type": "number", "description": "raio orbital em km (op=period)" },
+      "r1_km": { "type": "number", "description": "raio inicial em km (op=hohmann)" },
+      "r2_km": { "type": "number", "description": "raio final em km (op=hohmann)" }
+    },
+    "required": ["op"]
+  },
+  "invoke": { "type": "builtin", "handler": "orbital_calc" }
+}

@@ -1,0 +1,19 @@
+{
+  "id": "web_fetch",
+  "name": "Buscar URL",
+  "description": "Faz GET em uma URL http(s) e devolve o conteúdo (texto/JSON). Para páginas, devolve o HTML bruto.",
+  "category": "web",
+  "kind": "tool",
+  "provider": "tars",
+  "capabilities": ["web", "http", "leitura"],
+  "tags": ["web", "fetch", "http"],
+  "prompt_instruction": "Use para ler uma página/endpoint específico cuja URL você já conhece. Para descobrir URLs, use web_search.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "url": { "type": "string", "description": "URL http:// ou https://" }
+    },
+    "required": ["url"]
+  },
+  "invoke": { "type": "builtin", "handler": "web_fetch" }
+}

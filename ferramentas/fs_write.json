@@ -1,0 +1,21 @@
+{
+  "id": "fs_write",
+  "name": "Gravar Arquivo",
+  "description": "Escreve (ou anexa) texto em um arquivo dentro do workspace (sandbox). Cria diretórios pai se preciso.",
+  "category": "sistema",
+  "kind": "tool",
+  "provider": "tars",
+  "capabilities": ["filesystem", "escrita"],
+  "tags": ["fs", "write", "file"],
+  "prompt_instruction": "Use para criar/atualizar arquivos. mode='a' para anexar, 'w' (default) para sobrescrever.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "path": { "type": "string", "description": "caminho relativo ao workspace" },
+      "content": { "type": "string", "description": "conteúdo a gravar" },
+      "mode": { "type": "string", "enum": ["w", "a"], "description": "w=sobrescreve, a=anexa" }
+    },
+    "required": ["path", "content"]
+  },
+  "invoke": { "type": "builtin", "handler": "fs_write" }
+}

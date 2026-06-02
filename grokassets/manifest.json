@@ -1,0 +1,74 @@
+﻿{
+    "status":  "core-identity-started",
+    "assets":  [
+                   {
+                       "path":  "logos/primary/horizontal/dark/tars-primary-logo-horizontal-dark-1920.jpg",
+                       "dimensions":  "1920x1080",
+                       "promptFile":  "prompts/2026-05-31-tars-primary-logo-horizontal.md",
+                       "type":  "primary-logo-horizontal",
+                       "notes":  "First generation — strong monolith presence, excellent restraint on accent color"
+                   },
+                   {
+                       "path":  "icons/app/png/tars-app-icon-monolith-1024.png",
+                       "dimensions":  "1024x1024",
+                       "type":  "app-icon-square-monolith",
+                       "notes":  "Pure symbol mark, readable at small sizes"
+                   },
+                   {
+                       "path":  "banners/social/x-header/tars-x-header-hero-1500x500.jpg",
+                       "dimensions":  "1500x500",
+                       "type":  "social-hero-x-header",
+                       "notes":  "Cinematic, strong negative space, integrated typography"
+                   },
+                   {
+                       "path":  "logos/primary/stacked/tars-logo-stacked-1024.jpg",
+                       "dimensions":  "1024x1024",
+                       "type":  "logo-stacked",
+                       "notes":  "Vertical variant for dashboards and mobile"
+                   },
+                   {
+                       "promptFile":  "prompts/2026-05-31-tars-orbital-monolith-hero-loop.md",
+                       "resolution":  "720p",
+                       "path":  "motion/hero-loops/tars-orbital-monolith-hero-loop-16x9-12s-720p.mp4",
+                       "type":  "motion-hero-monolith",
+                       "duration":  "12s",
+                       "notes":  "Extremely restrained orbital monolith hero loop — quiet aerospace competence for presentations and calm navigation"
+                   },
+                   {
+                       "promptFile":  "prompts/2026-05-31-tars-orbital-telemetry-data.md",
+                       "resolution":  "720p",
+                       "path":  "motion/presentation-assets/tars-orbital-telemetry-data-16x9-9s-720p.mp4",
+                       "type":  "motion-telemetry",
+                       "duration":  "9s",
+                       "notes":  "Restrained orbital monolith with flowing telemetry data streams and precise linework — additional data visualization asset"
+                   },
+                   {
+                       "promptFile":  "prompts/2026-05-31-tars-monolith-data-etchings-activation.md",
+                       "resolution":  "720p",
+                       "path":  "motion/presentation-assets/tars-monolith-data-etchings-activation-16x9-10s-720p.mp4",
+                       "type":  "motion-etchings-activation",
+                       "duration":  "10s",
+                       "notes":  "Precise sequential illumination of monolith data etchings with single warm amber accent trace — additional telemetry/activation asset"
+                   },
+                   {
+                       "promptFile":  "prompts/2026-05-31-tars-monolith-amber-accent-activation.md",
+                       "resolution":  "720p",
+                       "path":  "motion/presentation-assets/tars-monolith-amber-accent-activation-16x9-9s-720p.mp4",
+                       "type":  "motion-amber-activation",
+                       "duration":  "9s",
+                       "notes":  "Sequential illumination of monolith data etchings with single precise warm amber accent trace — additional telemetry/activation asset"
+                   }
+               ],
+    "generatedAt":  "2026-05-31 (motion batch)",
+    "visualTheme":  "Asiimov orbital monolith on deep space void — quiet aerospace competence",
+    "campaign":  "grokassets",
+    "project":  "TARS",
+    "recommended_next_assets":  [
+                                    "Light-mode / presentation-safe variants of existing logos and heroes (critical for versatility)",
+                                    "Instagram post + LinkedIn banner (complete social surface coverage)",
+                                    "Additional deep-space monolith illustrations (different compositions, orbital mechanics emphasis)",
+                                    "Character / companion concepts (subtle human or AI operator presence with the monolith)",
+                                    "OG image light variant (1200x630)",
+                                    "UI mockups of TARS in dashboard / CLI / long-mission contexts"
+                                ]
+}

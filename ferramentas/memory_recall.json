@@ -1,0 +1,20 @@
+{
+  "id": "memory_recall",
+  "name": "Recuperar Memória",
+  "description": "Busca memórias salvas por palavra-chave + recência + importância.",
+  "category": "memoria",
+  "kind": "tool",
+  "provider": "tars",
+  "capabilities": ["memória", "busca"],
+  "tags": ["memory", "recall"],
+  "prompt_instruction": "Use no início de um objetivo para recuperar aprendizados relevantes antes de agir.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "query": { "type": "string", "description": "termos de busca (vazio = mais recentes/importantes)" },
+      "kind": { "type": "string", "enum": ["episodic", "semantic"] },
+      "limit": { "type": "integer" }
+    }
+  },
+  "invoke": { "type": "builtin", "handler": "memory_recall" }
+}

@@ -1,0 +1,276 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --radius: 0.75rem;
+
+    /* TARS — vazio espacial (tom azul-aço frio) */
+    --k-void:        #080a0e;       /* fundo absoluto: vácuo */
+    --k-void-2:      #0e1116;       /* fundo da sidebar */
+    --k-surface:     rgba(30, 36, 44, 0.55);  /* painéis flutuantes (instrumentos) */
+    --k-surface-hi:  rgba(40, 48, 58, 0.72);
+    --k-input:       rgba(16, 20, 26, 0.85);
+
+    /* Accent Asiimov — branco-aço técnico (era o vermelho Sharingan) */
+    --k-sharingan:        #dfe6ee;
+    --k-sharingan-deep:   #9aa6b4;
+    --k-sharingan-soft:   rgba(223, 230, 238, 0.07);
+    --k-sharingan-glow:   rgba(223, 230, 238, 0.20);
+    --k-sharingan-haze:   rgba(223, 230, 238, 0.03);
+
+    /* Cinza-azulado frio — profundidade técnica (era o violeta) */
+    --k-rift:        #8893a5;
+    --k-rift-soft:   rgba(136, 147, 165, 0.06);
+    --k-rift-glow:   rgba(136, 147, 165, 0.18);
+
+    /* Textos — leituras de HUD */
+    --k-text:        #eef2f7;
+    --k-text-soft:   #aab3c0;
+    --k-text-mute:   #6c7682;
+    --k-text-ghost:  #3b424c;
+
+    /* Bordas — linhas de instrumento (frias e sutis) */
+    --k-border:        rgba(223, 230, 238, 0.06);
+    --k-border-hover:  rgba(223, 230, 238, 0.16);
+    --k-border-active: rgba(223, 230, 238, 0.34);
+
+    /* Estados */
+    --k-tethered:      #54d6a4;
+    --k-tethered-bg:   rgba(84, 214, 164, 0.10);
+    --k-severed:       #e8746b;
+    --k-severed-bg:    rgba(232, 116, 107, 0.10);
+    --k-warning:       #e0a846;
+    --k-warning-bg:    rgba(224, 168, 70, 0.10);
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html, body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--k-void);
+    color: var(--k-text);
+    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+
+  ::selection {
+    background: var(--k-sharingan-soft);
+    color: var(--k-text);
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: var(--k-border);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover { background: var(--k-border-hover); }
+}
+
+@layer components {
+  /* ─── Painel suspenso na dimensão ─── */
+  .void-panel {
+    background: var(--k-surface);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid var(--k-border);
+    box-shadow:
+      0 6px 24px rgba(0, 0, 0, 0.45),
+      inset 0 1px 0 rgba(255, 255, 255, 0.02);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .void-panel:hover {
+    border-color: var(--k-border-hover);
+    box-shadow:
+      0 8px 28px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  /* ─── Item de navegação (sidebar) ─── */
+  .rift-item {
+    @apply flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 cursor-pointer;
+    color: var(--k-text-mute);
+    position: relative;
+  }
+  .rift-item:hover {
+    background: var(--k-sharingan-soft);
+    color: var(--k-text);
+  }
+  .rift-item.active {
+    background: var(--k-sharingan-soft);
+    color: var(--k-sharingan);
+    border: 1px solid var(--k-border-hover);
+  }
+  .rift-item.active::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 50%;
+    transform: translateY(-50%);
+    width: 2px; height: 60%;
+    background: var(--k-sharingan);
+    border-radius: 2px;
+    opacity: 0.7;
+  }
+
+  /* ─── Badge de estado ─── */
+  .state-badge {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wide uppercase;
+  }
+  .state-badge.tethered {
+    background: var(--k-tethered-bg);
+    color: var(--k-tethered);
+    border: 1px solid var(--k-tethered);
+  }
+  .state-badge.severed {
+    background: var(--k-severed-bg);
+    color: var(--k-severed);
+    border: 1px solid var(--k-severed);
+  }
+  .state-badge.dormant {
+    background: rgba(107, 87, 100, 0.12);
+    color: var(--k-text-mute);
+    border: 1px solid var(--k-text-ghost);
+  }
+
+  /* ─── Texto com glow sutil de Sharingan ─── */
+  .sharingan-text {
+    color: var(--k-sharingan);
+    text-shadow: 0 0 18px var(--k-sharingan-haze);
+  }
+  .void-text {
+    background: linear-gradient(135deg, var(--k-text) 0%, var(--k-text-soft) 60%, var(--k-text-mute) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .kanji {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    letter-spacing: 0.18em;
+  }
+
+  /* ─── Assinatura "Lucas" — handwritten, canto do sticky ─── */
+  .signature {
+    font-family: 'Caveat', 'Kalam', cursive;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: var(--k-text-mute);
+    opacity: 0.7;
+  }
+
+  /* ─── Sticky-note card adaptado ao void ─── */
+  .sticky-card {
+    background: linear-gradient(135deg,
+      rgba(38, 18, 38, 0.65) 0%,
+      rgba(28, 14, 28, 0.55) 100%);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    border: 1px solid var(--k-border);
+    box-shadow:
+      0 12px 36px rgba(0, 0, 0, 0.55),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+  }
+  .sticky-card::before {
+    /* canto superior "dobrado" — efeito sticky-note sutil */
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 16px; height: 16px;
+    background: linear-gradient(225deg, var(--k-sharingan-soft) 50%, transparent 50%);
+    opacity: 0.5;
+    pointer-events: none;
+  }
+  .sticky-card:hover {
+    border-color: var(--k-border-hover);
+    transform: translateY(-2px) rotate(-0.3deg);
+    box-shadow:
+      0 14px 36px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+  .sticky-card.featured {
+    background: linear-gradient(135deg,
+      rgba(223, 230, 238, 0.05) 0%,
+      rgba(136, 147, 165, 0.03) 100%);
+    border-color: var(--k-border-hover);
+  }
+
+  /* ─── Tab pill (Entrada / Saída) ─── */
+  .tab-pill {
+    @apply px-5 py-2 rounded-lg text-xs font-semibold tracking-[0.18em] uppercase transition-all duration-200 cursor-pointer;
+    color: var(--k-text-mute);
+    background: transparent;
+    border: 1px solid transparent;
+  }
+  .tab-pill:hover {
+    color: var(--k-text-soft);
+    background: var(--k-sharingan-haze);
+  }
+  .tab-pill.active {
+    color: var(--k-sharingan);
+    background: var(--k-sharingan-soft);
+    border-color: var(--k-border-hover);
+  }
+
+  /* ─── Botões ─── */
+  .btn-rift {
+    @apply px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 cursor-pointer;
+    background: var(--k-input);
+    color: var(--k-text-soft);
+    border: 1px solid var(--k-border);
+  }
+  .btn-rift:hover {
+    background: var(--k-sharingan-soft);
+    border-color: var(--k-border-hover);
+    color: var(--k-sharingan);
+    box-shadow: 0 0 16px var(--k-sharingan-haze);
+  }
+  .btn-rift:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  /* ─── Título de seção ─── */
+  .void-title {
+    @apply text-3xl font-bold tracking-tight;
+    background: linear-gradient(135deg, var(--k-text) 0%, var(--k-text-soft) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ─── Tomoe — três vírgulas do Sharingan (sutil) ─── */
+  .tomoe-ring {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 1px solid var(--k-sharingan-soft);
+  }
+  .tomoe-ring::before,
+  .tomoe-ring::after,
+  .tomoe-ring > .tomoe-3 {
+    content: '';
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    background: var(--k-sharingan);
+    border-radius: 50% 0 50% 50%;
+    opacity: 0.3;
+  }
+  .tomoe-ring::before { top: 8%; left: 50%; transform: translateX(-50%) rotate(0deg); }
+  .tomoe-ring::after  { bottom: 18%; right: 12%; transform: rotate(120deg); }
+  .tomoe-ring > .tomoe-3 { bottom: 18%; left: 12%; transform: rotate(240deg); }
+}

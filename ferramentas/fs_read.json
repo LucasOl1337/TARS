@@ -1,0 +1,19 @@
+{
+  "id": "fs_read",
+  "name": "Ler Arquivo",
+  "description": "Lê o conteúdo de um arquivo de texto dentro do workspace (sandbox).",
+  "category": "sistema",
+  "kind": "tool",
+  "provider": "tars",
+  "capabilities": ["filesystem", "leitura"],
+  "tags": ["fs", "read", "file"],
+  "prompt_instruction": "Use para inspecionar arquivos antes de editar ou para checar resultados.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "path": { "type": "string", "description": "caminho relativo ao workspace" }
+    },
+    "required": ["path"]
+  },
+  "invoke": { "type": "builtin", "handler": "fs_read" }
+}

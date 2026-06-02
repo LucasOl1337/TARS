@@ -1,0 +1,19 @@
+{
+  "id": "think",
+  "name": "Pensar",
+  "description": "Espaço de raciocínio explícito — o TARS estrutura o pensamento antes de agir. Não visível ao usuário final.",
+  "category": "cognição",
+  "kind": "tool",
+  "provider": "tars",
+  "capabilities": ["raciocínio", "planejamento"],
+  "tags": ["interno", "reasoning"],
+  "prompt_instruction": "Use para organizar passos de uma tarefa complexa antes de responder. O conteúdo fica fora da resposta visível.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "thought": { "type": "string", "description": "o raciocínio a registrar" }
+    },
+    "required": ["thought"]
+  },
+  "invoke": { "type": "builtin", "handler": "think" }
+}
