@@ -14,7 +14,10 @@
       "prompt": { "type": "string", "description": "descrição da imagem a gerar" },
       "filename": { "type": "string", "description": "nome do arquivo de saída, ex: 'cavalo.png' (salvo no Desktop por padrão)" },
       "dest": { "type": "string", "description": "diretório de destino (opcional; default = Desktop)" },
-      "output_path": { "type": "string", "description": "caminho absoluto completo de saída (opcional; tem prioridade sobre filename/dest)" }
+      "output_path": { "type": "string", "description": "caminho absoluto completo de saída (opcional; tem prioridade sobre filename/dest)" },
+      "force": { "type": "boolean", "description": "força nova geração mesmo se houver cache/idempotência" },
+      "reuse_existing": { "type": "boolean", "description": "reutiliza o arquivo de saída se ele já existir e estiver válido" },
+      "idempotency_key": { "type": "string", "description": "chave estável para gerar nome determinístico quando filename/output_path não forem informados" }
     },
     "required": ["prompt"]
   },

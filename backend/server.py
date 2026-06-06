@@ -18,6 +18,7 @@ import json
 import time
 import uuid
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -28,6 +29,7 @@ from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
 
 import config
+import event_store
 from bridges import (
     BRIDGES,
     call_bridge,
@@ -173,16 +175,56 @@ async def system_prompt() -> dict[str, Any]:
 
 # ----- Yume Persona Bridge (via Kamui) ------------------------------------- #
 
+YUME_HEADERS = {"X-Kamui-Caller": "tars", "User-Agent": "TARS/1.0 (kamui-client)"}
+
+
+def _extract_yume_personas(payload: Any) -> list[dict[str, Any]]:
+    if isinstance(payload, list):
+        return [p for p in payload if isinstance(p, dict)]
+    if not isinstance(payload, dict):
+        return []
+
+    personas = payload.get("personas")
+    if isinstance(personas, list):
+        return [p for p in personas if isinstance(p, dict)]
+
+    data = payload.get("data")
+    if data is not payload:
+        return _extract_yume_personas(data)
+
+    return []
+
+
+def _extract_yume_persona(payload: Any) -> dict[str, Any] | None:
+    if not isinstance(payload, dict):
+        return None
+
+    if isinstance(payload.get("slug"), str):
+        return payload
+
+    persona = payload.get("persona")
+    if isinstance(persona, dict):
+        nested = _extract_yume_persona(persona)
+        if nested:
+            return nested
+
+    data = payload.get("data")
+    if isinstance(data, dict) and data is not payload:
+        return _extract_yume_persona(data)
+
+    return None
+
+
 async def _fetch_yume_personas():
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             r = await client.get(
                 f"{KAMUI_BASE}/kamui/yume/personas",
-                headers={"X-Kamui-Caller": "tars", "User-Agent": "TARS/1.0 (kamui-client)"},
+                headers=YUME_HEADERS,
             )
             if r.status_code == 200:
                 data = r.json()
-                return {"personas": data if isinstance(data, list) else data.get("personas", []), "source": "kamui+yume"}
+                return {"personas": _extract_yume_personas(data), "source": "kamui+yume"}
     except Exception as e:
         return {"personas": [], "source": "kamui+yume", "error": str(e)}
     return {"personas": [], "source": "kamui+yume", "error": "unreachable"}
@@ -193,10 +235,10 @@ async def _fetch_yume_persona(slug: str):
         async with httpx.AsyncClient(timeout=30.0) as client:
             r = await client.get(
                 f"{KAMUI_BASE}/kamui/yume/personas/{slug}",
-                headers={"X-Kamui-Caller": "tars", "User-Agent": "TARS/1.0 (kamui-client)"},
+                headers=YUME_HEADERS,
             )
             if r.status_code == 200:
-                return {"persona": r.json(), "source": "kamui+yume"}
+                return {"persona": _extract_yume_persona(r.json()), "source": "kamui+yume"}
     except Exception as e:
         return {"persona": None, "source": "kamui+yume", "error": str(e)}
     return {"persona": None, "source": "kamui+yume", "error": "unreachable"}
@@ -218,10 +260,13 @@ async def yume_persona_prompt(slug: str):
         async with httpx.AsyncClient(timeout=30.0) as client:
             r = await client.get(
                 f"{KAMUI_BASE}/kamui/yume/personas/{slug}/system-prompt",
-                headers={"X-Kamui-Caller": "tars", "User-Agent": "TARS/1.0 (kamui-client)"},
+                headers=YUME_HEADERS,
             )
             if r.status_code == 200:
-                return r.json()
+                data = r.json()
+                if isinstance(data, dict) and isinstance(data.get("data"), dict):
+                    return data["data"]
+                return data
     except Exception as e:
         return {"error": str(e)}
     return {"error": "unreachable"}
@@ -266,6 +311,143 @@ async def chat_providers() -> dict[str, Any]:
         "available": [k for k, v in provs.items() if v],
         "active": {"provider": provider or None, "model": send_model},
         "ready": any(provs.values()),
+    }
+
+
+async def _ninerouter_model_rows() -> tuple[list[dict[str, Any]], str | None]:
+    if not getattr(config, "NINEROUTER_BASE", ""):
+        return [], "NINEROUTER_BASE não configurado"
+    try:
+        headers = {"Authorization": f"Bearer {config.NINEROUTER_API_KEY}"}
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            r = await client.get(f"{config.NINEROUTER_BASE}/models", headers=headers)
+        if r.status_code != 200:
+            return [], f"9router /models HTTP {r.status_code}"
+        data = r.json()
+        raw_models = data.get("data") if isinstance(data, dict) else []
+        rows: list[dict[str, Any]] = []
+        for item in raw_models if isinstance(raw_models, list) else []:
+            if not isinstance(item, dict) or not item.get("id"):
+                continue
+            model_id = str(item["id"])
+            rows.append({
+                "id": f"ninerouter/{model_id}",
+                "provider": "ninerouter",
+                "provider_label": "9Router",
+                "model": model_id,
+                "label": model_id,
+                "owned_by": item.get("owned_by"),
+                "available": True,
+                "source": config.NINEROUTER_BASE,
+            })
+        return rows, None
+    except Exception as exc:  # noqa: BLE001
+        return [], str(exc)
+
+
+def _static_model_rows(providers: dict[str, bool]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    if providers.get("glm"):
+        rows.append({
+            "id": "glm-5.1",
+            "provider": "glm",
+            "provider_label": "GLM",
+            "model": "glm-5.1",
+            "label": "GLM 5.1",
+            "owned_by": "z.ai",
+            "available": True,
+            "source": config.GLM_BASE,
+        })
+    if providers.get("kimi"):
+        rows.extend([
+            {
+                "id": "kimi/kimi-k2.6",
+                "provider": "kimi",
+                "provider_label": "Kimi",
+                "model": "kimi-k2.6",
+                "label": "Kimi K2.6",
+                "owned_by": "moonshot",
+                "available": True,
+                "source": config.KIMI_BASE,
+            },
+            {
+                "id": "kimi/kimi-latest",
+                "provider": "kimi",
+                "provider_label": "Kimi",
+                "model": "kimi-latest",
+                "label": "Kimi Latest",
+                "owned_by": "moonshot",
+                "available": True,
+                "source": config.KIMI_BASE,
+            },
+        ])
+    if providers.get("anthropic"):
+        rows.append({
+            "id": "claude-sonnet-4-5",
+            "provider": "anthropic",
+            "provider_label": "Anthropic",
+            "model": "claude-sonnet-4-5",
+            "label": "Claude Sonnet",
+            "owned_by": "anthropic",
+            "available": True,
+            "source": config.ANTHROPIC_BASE,
+        })
+    return rows
+
+
+@router.get("/chat/models")
+async def chat_models() -> dict[str, Any]:
+    persona = _persona_or_503()
+    active_model = str(persona.get("model") or config.TARS_MODEL)
+    active_provider, send_model = provider_for_model(active_model)
+    providers = available_providers()
+    ninerouter_rows, ninerouter_error = await _ninerouter_model_rows()
+    rows = _static_model_rows(providers) + ninerouter_rows
+
+    if active_model and all(row["id"] != active_model for row in rows):
+        rows.insert(0, {
+            "id": active_model,
+            "provider": active_provider or "unknown",
+            "provider_label": active_provider or "Custom",
+            "model": send_model,
+            "label": active_model,
+            "owned_by": None,
+            "available": bool(active_provider),
+            "source": "persona",
+        })
+
+    return {
+        "active": {
+            "model": active_model,
+            "provider": active_provider or None,
+            "send_model": send_model,
+            "persona": persona.get("slug"),
+        },
+        "providers": providers,
+        "models": rows,
+        "count": len(rows),
+        "errors": {"ninerouter": ninerouter_error} if ninerouter_error else {},
+    }
+
+
+@router.put("/chat/model")
+async def update_chat_model(payload: dict[str, Any] = Body(...)) -> Any:
+    model = str(payload.get("model") or "").strip()
+    if not model:
+        return JSONResponse({"ok": False, "error": "model obrigatório"}, status_code=400)
+    provider, send_model = provider_for_model(model)
+    if not provider:
+        return JSONResponse(
+            {"ok": False, "error": f"nenhum provider disponível para '{model}'"},
+            status_code=422,
+        )
+    updated = await update_persona({"model": model})
+    return {
+        "ok": True,
+        "model": model,
+        "provider": provider,
+        "send_model": send_model,
+        "persona": updated.get("persona") if isinstance(updated, dict) else None,
     }
 
 
@@ -433,7 +615,7 @@ async def chat(payload: dict[str, Any] = Body(...)) -> Any:
     if not provider:
         return JSONResponse(
             {"ok": False, "error": "nenhum provider LLM configurado (defina GLM_API_KEY / "
-             "OPENROUTER_API_KEY / ANTHROPIC_API_KEY / KIMI_API_KEY)"},
+             "OPENROUTER_API_KEY / ANTHROPIC_API_KEY / KIMI_API_KEY / NINEROUTER_BASE)"},
             status_code=503,
         )
 
@@ -1411,6 +1593,1116 @@ async def test_real_chat() -> dict[str, Any]:
         return {"ok": False, "error": str(e)}
 
 
+# ----- Harness modular ------------------------------------------------------ #
+
+def _harness_ctx(payload: dict[str, Any] | None = None):
+    from harness import HarnessContext
+
+    body = payload if isinstance(payload, dict) else {}
+    return HarnessContext(
+        live_ai=bool(body.get("live_ai", False)),
+        model=str(body.get("model") or "").strip() or None,
+        max_tokens=int(body.get("max_tokens", 80) or 80),
+        metadata=body,
+    )
+
+
+async def _harness_persona(slug: str) -> dict[str, Any]:
+    clean_slug = str(slug or "tars").strip().lower() or "tars"
+    if clean_slug == PERSONA_SLUG:
+        return _persona_or_503()
+    yume_persona = await _fetch_yume_persona(clean_slug)
+    persona = yume_persona.get("persona") if isinstance(yume_persona, dict) else None
+    return persona if isinstance(persona, dict) else _persona_or_503()
+
+
+def _harness_tool_input(stage: dict[str, Any], llm_text: str = "") -> dict[str, Any]:
+    instruction = str(stage.get("instruction") or "").strip()
+    content = llm_text.strip() or instruction
+    tool_id = str(stage.get("tool") or "").strip()
+    base = {
+        "_harness_stage_id": stage.get("id"),
+        "_harness_stage_title": stage.get("title"),
+        "_harness_persona": stage.get("persona"),
+        "_harness_model": stage.get("model"),
+    }
+    idempotency_key = f"harness:{stage.get('id') or stage.get('title') or 'stage'}:{tool_id}:{instruction}"
+    if tool_id == "grok_imagine":
+        return {
+            **base,
+            "prompt": content or instruction,
+            "reuse_existing": True,
+            "idempotency_key": idempotency_key,
+        }
+    if tool_id == "image_generate":
+        return {**base, "prompt": content or instruction, "force": True}
+    if tool_id == "mission_log":
+        return {**base, "entry": content, "category": "harness"}
+    if tool_id == "think":
+        return {**base, "thought": content}
+    if tool_id == "llm_subcall":
+        return {
+            **base,
+            "prompt": instruction or content,
+            "model": str(stage.get("model") or config.TARS_MODEL),
+            "max_tokens": 1200,
+        }
+    return {**base, "prompt": instruction, "input": content, "query": content}
+
+
+def _harness_clean_tool_payload(tool: dict[str, Any], payload: dict[str, Any]) -> dict[str, Any]:
+    if not isinstance(payload, dict):
+        return {}
+    params = tool.get("parameters") if isinstance(tool, dict) else {}
+    properties = params.get("properties") if isinstance(params, dict) else None
+    if not isinstance(properties, dict) or not properties:
+        return payload
+    runtime_keys = {
+        "force",
+        "reuse_existing",
+        "skip_if_exists",
+        "idempotency_key",
+        "timeout",
+    }
+    allowed = set(properties.keys()) | runtime_keys
+    return {
+        key: value
+        for key, value in payload.items()
+        if key in allowed or str(key).startswith("_harness_")
+    }
+
+
+def _harness_explicit_tool_payload(stage: dict[str, Any]) -> dict[str, Any] | None:
+    for key in ("tool_input", "toolInput", "input", "payload"):
+        value = stage.get(key)
+        if isinstance(value, dict):
+            return value
+    return None
+
+
+def _harness_public_value(value: Any, string_limit: int = 1000) -> Any:
+    if isinstance(value, str):
+        if len(value) <= string_limit:
+            return value
+        return value[:string_limit] + f"\n...[truncado: {len(value)} chars]"
+    if isinstance(value, list):
+        return [_harness_public_value(item, string_limit) for item in value]
+    if isinstance(value, dict):
+        return {str(key): _harness_public_value(item, string_limit) for key, item in value.items()}
+    return value
+
+
+def _harness_error_policy(stage: dict[str, Any]) -> str:
+    raw = str(
+        stage.get("error_policy")
+        or stage.get("errorPolicy")
+        or stage.get("on_error")
+        or "auto_repair"
+    ).strip().lower()
+    aliases = {
+        "halt": "stop",
+        "fail": "stop",
+        "fail_fast": "stop",
+        "ignore": "continue",
+        "skip": "continue",
+        "contornar": "auto_repair",
+        "repair": "auto_repair",
+        "auto": "auto_repair",
+        "best-effort": "best_effort",
+        "partial": "best_effort",
+    }
+    policy = aliases.get(raw, raw)
+    return policy if policy in {"stop", "continue", "best_effort", "auto_repair"} else "auto_repair"
+
+
+def _harness_unsupported_message(tool_plan: dict[str, Any]) -> str:
+    unsupported = tool_plan.get("unsupported") if isinstance(tool_plan.get("unsupported"), list) else []
+    reasons = [str(item).strip() for item in unsupported if str(item).strip()]
+    if not reasons and tool_plan.get("summary"):
+        reasons.append(str(tool_plan.get("summary")))
+    return "ferramenta selecionada não cobre a etapa: " + "; ".join(reasons or ["contrato da ferramenta não atendido"])
+
+
+def _harness_required_missing(tool: dict[str, Any], payload: dict[str, Any]) -> list[str]:
+    params = tool.get("parameters") if isinstance(tool, dict) else {}
+    required = params.get("required") if isinstance(params, dict) else []
+    if not isinstance(required, list):
+        return []
+    missing = []
+    for key in required:
+        if not str(payload.get(str(key)) or "").strip():
+            missing.append(str(key))
+    return missing
+
+
+async def _harness_attempt_repair(
+    stage: dict[str, Any],
+    persona: dict[str, Any],
+    provider: str | None,
+    send_model: str,
+    context: str,
+    llm_text: str,
+    problem: str,
+    trace_id: str,
+) -> dict[str, Any]:
+    if not provider:
+        return {"ok": False, "error": "provider LLM indisponível para auto-correção"}
+
+    planner_system = (
+        build_system_prompt(persona)
+        + "\n\n## Harness Recovery\n"
+        + "A etapa atual falhou por incompatibilidade entre instrução e ferramenta selecionada. "
+        + "Monte um plano de recuperação com até 4 chamadas de ferramentas executáveis. "
+        + "Use desktop_write para arquivos de texto pedidos na área de trabalho/Desktop; "
+        + "use fs_write somente para workspace; use grok_imagine para imagens via Grok. "
+        + "Não use shell_exec para escrever arquivos se desktop_write ou fs_write resolverem. "
+        + "Responda somente JSON válido no formato: "
+        + "{\"can_repair\": boolean, \"strategy\": string, \"tool_calls\": "
+        + "[{\"tool_id\": string, \"input\": object, \"purpose\": string}], \"final_note\": string}."
+    )
+    planner_payload = {
+        "stage": {
+            "id": stage.get("id"),
+            "title": stage.get("title"),
+            "kind": stage.get("kind"),
+            "instruction": stage.get("instruction"),
+            "selected_tool": stage.get("tool"),
+        },
+        "problem": problem,
+        "available_tools": _tool_catalog_for_planner(),
+        "previous_context": context,
+        "stage_llm_output": llm_text,
+    }
+    try:
+        planned = await dispatch_llm(
+            provider,
+            send_model,
+            planner_system,
+            [{"role": "user", "content": json.dumps(planner_payload, ensure_ascii=False, default=str)}],
+            0.1,
+            1400,
+        )
+    except Exception as exc:  # noqa: BLE001
+        return {"ok": False, "error": f"planejamento de recuperação falhou: {exc}"}
+
+    plan = _json_object_from_text(str(planned.get("content") or ""))
+    if not plan:
+        return {"ok": False, "error": "planner de recuperação não retornou JSON válido"}
+    calls = plan.get("tool_calls") if isinstance(plan.get("tool_calls"), list) else []
+    if not bool(plan.get("can_repair", False)) or not calls:
+        return {"ok": False, "plan": plan, "error": str(plan.get("final_note") or "sem plano de recuperação")}
+
+    results: list[dict[str, Any]] = []
+    for i, raw_call in enumerate(calls[:4], start=1):
+        if not isinstance(raw_call, dict):
+            continue
+        call_tool_id = str(raw_call.get("tool_id") or "").strip()
+        tool = tools_by_id().get(call_tool_id)
+        if not tool or not _tool_executable(tool):
+            return {"ok": False, "plan": plan, "results": results, "error": f"ferramenta de recuperação indisponível: {call_tool_id}"}
+
+        repair_stage = {**stage, "tool": call_tool_id}
+        fallback = _harness_tool_input(repair_stage, llm_text)
+        raw_input = raw_call.get("input") if isinstance(raw_call.get("input"), dict) else {}
+        clean_input = _harness_clean_tool_payload(tool, raw_input)
+        runtime_defaults = {
+            key: value
+            for key, value in fallback.items()
+            if str(key).startswith("_harness_") or key in {"force", "reuse_existing", "skip_if_exists", "idempotency_key"}
+        }
+        tool_payload = {**runtime_defaults, **clean_input}
+        missing = _harness_required_missing(tool, tool_payload)
+        if missing:
+            return {
+                "ok": False,
+                "plan": plan,
+                "results": results,
+                "error": f"plano de recuperação sem campos obrigatórios para {call_tool_id}: {', '.join(missing)}",
+            }
+
+        tool_result = await execute_tool(call_tool_id, tool_payload, source="harness-repair", trace_id=trace_id)
+        item = {
+            "index": i,
+            "tool": call_tool_id,
+            "purpose": str(raw_call.get("purpose") or ""),
+            "input": _harness_public_value(tool_payload),
+            "result": tool_result,
+            "ok": bool(tool_result.get("ok")),
+        }
+        results.append(item)
+        if not tool_result.get("ok"):
+            return {"ok": False, "plan": plan, "results": results, "error": f"recuperação falhou em {call_tool_id}"}
+
+    output = {
+        "recovered": True,
+        "strategy": str(plan.get("strategy") or "auto_repair"),
+        "final_note": str(plan.get("final_note") or ""),
+        "tool_calls": [
+            {
+                "tool": item["tool"],
+                "purpose": item["purpose"],
+                "ok": item["ok"],
+                "result": item["result"].get("result") or item["result"],
+            }
+            for item in results
+        ],
+    }
+    return {"ok": True, "plan": plan, "results": results, "output": output}
+
+
+def _harness_project_inventory(limit: int = 40) -> list[dict[str, Any]]:
+    root = config.TARS_DIR.parent
+    projects: list[dict[str, Any]] = []
+    try:
+        entries = [entry for entry in root.iterdir() if entry.is_dir() and not entry.name.startswith(".")]
+    except OSError:
+        return []
+
+    marker_names = {
+        "package.json": "node",
+        "pnpm-lock.yaml": "pnpm",
+        "vite.config.ts": "vite",
+        "next.config.js": "next",
+        "pyproject.toml": "python",
+        "requirements.txt": "python",
+        "server.py": "python-server",
+        "README.md": "readme",
+        "README.md": "readme",
+    }
+    for entry in entries:
+        signals: list[str] = []
+        for marker, signal in marker_names.items():
+            if (entry / marker).exists():
+                signals.append(signal)
+        lowered = entry.name.lower()
+        if "video" in lowered:
+            signals.append("video")
+        if "youtube" in lowered or "moneyprinter" in lowered:
+            signals.append("youtube")
+        if "grok" in lowered or "image" in lowered or "gallery" in lowered:
+            signals.append("media")
+        try:
+            mtime = entry.stat().st_mtime
+        except OSError:
+            mtime = 0.0
+        projects.append({
+            "name": entry.name,
+            "path": str(entry),
+            "signals": sorted(set(signals)),
+            "last_modified": int(mtime),
+        })
+
+    projects.sort(key=lambda item: (("video" not in item["signals"], "youtube" not in item["signals"]), -item["last_modified"], item["name"].lower()))
+    return projects[:limit]
+
+
+def _harness_branch_context(kind: str, instruction: str) -> dict[str, Any]:
+    text = f"{kind} {instruction}".lower()
+    wants_project = any(token in text for token in ("projeto", "projetos", "project", "youtube", "vídeo", "video"))
+    if kind == "branch" or wants_project:
+        return {"project_inventory": _harness_project_inventory()}
+    return {}
+
+
+def _harness_project_score(project: dict[str, Any], instruction: str) -> int:
+    text = instruction.lower()
+    name = str(project.get("name") or "").lower()
+    signals = set(project.get("signals") or [])
+    score = 0
+    if "video" in text or "vídeo" in text:
+        score += 30 if "video" in signals or "video" in name else 0
+    if "youtube" in text:
+        score += 30 if "youtube" in signals or "moneyprinter" in name else 0
+    if "gerar" in text or "produção" in text or "producao" in text:
+        score += 15 if any(sig in signals for sig in ("node", "python", "vite")) else 0
+    if name == "videogen":
+        score += 45
+    if name == "moneyprinterturbo":
+        score += 35
+    if name in {"tars", "kamui", "yume"}:
+        score -= 10
+    score += min(int(project.get("last_modified") or 0) // 10_000_000, 20)
+    return score
+
+
+def _harness_fallback_branch_decision(instruction: str, inventory: list[dict[str, Any]]) -> dict[str, Any] | None:
+    if not inventory:
+        return None
+    ranked = sorted(inventory, key=lambda project: _harness_project_score(project, instruction), reverse=True)
+    selected = ranked[0]
+    return {
+        "selected_project": selected.get("name"),
+        "project_path": selected.get("path"),
+        "reason": "Escolha fallback baseada no inventário local e sinais do projeto.",
+        "confidence": 0.55,
+        "next_action": "Usar este projeto como referência para a próxima etapa do fluxo.",
+        "alternatives": [
+            {"name": item.get("name"), "path": item.get("path"), "signals": item.get("signals")}
+            for item in ranked[1:4]
+        ],
+    }
+
+
+def _harness_flow_store_path() -> Path:
+    return config.DATA_DIR / "harness_flows.json"
+
+
+def _builtin_harness_flows() -> list[dict[str, Any]]:
+    model = config.TARS_MODEL or "glm-5.1"
+    return [
+        {
+            "id": "core-runtime-io",
+            "name": "Core Runtime + I/O",
+            "description": "Valida raciocínio, escrita/leitura/listagem no workspace e execução shell segura.",
+            "stages": [
+                {
+                    "id": "core-think",
+                    "title": "Registrar pensamento",
+                    "kind": "tool",
+                    "model": model,
+                    "persona": "tars",
+                    "tool": "think",
+                    "errorPolicy": "stop",
+                    "instruction": "Registre um pensamento de diagnóstico.",
+                    "tool_input": {"thought": "diagnóstico core runtime iniciado"},
+                },
+                {
+                    "id": "core-write",
+                    "title": "Gravar arquivo no workspace",
+                    "kind": "tool",
+                    "model": model,
+                    "persona": "tars",
+                    "tool": "fs_write",
+                    "errorPolicy": "stop",
+                    "instruction": "Crie o arquivo de prova do fluxo core.",
+                    "tool_input": {"path": "harness/core-runtime/status.txt", "content": "core-runtime-ok", "mode": "w"},
+                },
+                {
+                    "id": "core-read",
+                    "title": "Ler arquivo gravado",
+                    "kind": "tool",
+                    "model": model,
+                    "persona": "tars",
+                    "tool": "fs_read",
+                    "errorPolicy": "stop",
+                    "instruction": "Leia o arquivo de prova do fluxo core.",
+                    "tool_input": {"path": "harness/core-runtime/status.txt"},
+                },
+                {
+                    "id": "core-list",
+                    "title": "Listar diretório",
+                    "kind": "tool",
+                    "model": model,
+                    "persona": "tars",
+                    "tool": "fs_list",
+                    "errorPolicy": "stop",
+                    "instruction": "Liste o diretório de prova.",
+                    "tool_input": {"path": "harness/core-runtime"},
+                },
+                {
+                    "id": "core-shell",
+                    "title": "Executar shell seguro",
+                    "kind": "tool",
+                    "model": model,
+                    "persona": "tars",
+                    "tool": "shell_exec",
+                    "errorPolicy": "stop",
+                    "instruction": "Execute um comando shell permitido.",
+                    "tool_input": {"command": "python -c \"print('shell-ok')\"", "timeout": 30},
+                },
+            ],
+        },
+        {
+            "id": "space-memory-log",
+            "name": "Space + Memory + Mission Log",
+            "description": "Valida ferramentas astronômicas, memória persistente e log de missão.",
+            "stages": [
+                {
+                    "id": "space-lookup",
+                    "title": "Consultar Marte",
+                    "kind": "tool",
+                    "model": model,
+                    "persona": "tars",
+                    "tool": "astro_lookup",
+                    "errorPolicy": "stop",
+                    "instruction": "Consulte dados de Marte.",
+                    "tool_input": {"body": "mars"},
+                },
+                {
+                    "id": "space-orbit",
+                    "title": "Calcular período orbital",
+                    "kind": "tool",
+                    "model": model,
+                    "persona": "tars",
+                    "tool": "orbital_calc",
+                    "errorPolicy": "stop",
+                    "instruction": "Calcule um período orbital terrestre baixo.",
+                    "tool_input": {"op": "period", "body": "earth", "r_km": 6771},
+                },
+                {
+                    "id": "space-memory-save",
+                    "title": "Salvar memória",
+                    "kind": "tool",
+                    "model": model,
+                    "persona": "tars",
+                    "tool": "memory_save",
+                    "errorPolicy": "stop",
+                    "instruction": "Salve um aprendizado do fluxo.",
+                    "tool_input": {
+                        "content": "harness space-memory-log confirmou ferramentas astronômicas e memória",
+                        "kind": "semantic",
+                        "category": "harness",
+                        "tags": ["harness", "space"],
+                        "importance": 6,
+                    },
+                },
+                {
+                    "id": "space-memory-recall",
+                    "title": "Recuperar memória",
+                    "kind": "tool",
+                    "model": model,
+                    "persona": "tars",
+                    "tool": "memory_recall",
+                    "errorPolicy": "stop",
+                    "instruction": "Recupere a memória salva.",
+                    "tool_input": {"query": "space-memory-log ferramentas astronômicas", "kind": "semantic", "limit": 5},
+                },
+                {
+                    "id": "space-log",
+                    "title": "Registrar missão",
+                    "kind": "tool",
+                    "model": model,
+                    "persona": "tars",
+                    "tool": "mission_log",
+                    "errorPolicy": "stop",
+                    "instruction": "Registre o sucesso parcial do fluxo no log.",
+                    "tool_input": {"entry": "harness space-memory-log executado", "category": "harness"},
+                },
+            ],
+        },
+        {
+            "id": "project-decision-llm",
+            "name": "Project Decision + LLM",
+            "description": "Valida decisão estruturada com inventário local e subchamada LLM.",
+            "stages": [
+                {
+                    "id": "project-branch",
+                    "title": "Escolher projeto local",
+                    "kind": "branch",
+                    "model": model,
+                    "persona": "tars",
+                    "tool": "",
+                    "errorPolicy": "stop",
+                    "instruction": "Escolha um projeto entre os disponíveis nesta máquina para gerar vídeos e publicar no YouTube.",
+                },
+                {
+                    "id": "project-llm",
+                    "title": "Resumir decisão",
+                    "kind": "tool",
+                    "model": model,
+                    "persona": "tars",
+                    "tool": "llm_subcall",
+                    "errorPolicy": "stop",
+                    "instruction": "Faça uma subchamada LLM objetiva para validar que LLM tools funcionam.",
+                    "tool_input": {
+                        "prompt": "Responda exatamente em JSON: {\"llm_subcall_ok\":true,\"note\":\"project decision validated\"}",
+                        "temperature": 0,
+                        "max_tokens": 120,
+                    },
+                },
+            ],
+        },
+        {
+            "id": "auto-repair-desktop",
+            "name": "Auto Repair + Desktop",
+            "description": "Valida correção automática de ferramenta errada para escrita segura no Desktop.",
+            "stages": [
+                {
+                    "id": "repair-wrong-tool",
+                    "title": "Corrigir ferramenta incompatível",
+                    "kind": "tool",
+                    "model": model,
+                    "persona": "tars",
+                    "tool": "grok_imagine",
+                    "errorPolicy": "auto_repair",
+                    "instruction": "Salve um arquivo TXT na área de trabalho chamado tars-harness-auto-repair.txt contendo exatamente: auto repair ok",
+                },
+                {
+                    "id": "repair-log",
+                    "title": "Registrar recuperação",
+                    "kind": "tool",
+                    "model": model,
+                    "persona": "tars",
+                    "tool": "mission_log",
+                    "errorPolicy": "stop",
+                    "instruction": "Registre que a recuperação automática foi exercitada.",
+                    "tool_input": {"entry": "harness auto-repair-desktop exercitou recuperação automática", "category": "harness"},
+                },
+            ],
+        },
+        {
+            "id": "web-visual-idempotency",
+            "name": "Web + Visual Idempotency",
+            "description": "Valida web_fetch, criação no Desktop e reuso idempotente do grok_imagine sem gerar imagem nova.",
+            "stages": [
+                {
+                    "id": "web-self-health",
+                    "title": "Buscar health local",
+                    "kind": "tool",
+                    "model": model,
+                    "persona": "tars",
+                    "tool": "web_fetch",
+                    "errorPolicy": "stop",
+                    "instruction": "Leia o endpoint local de saúde do TARS.",
+                    "tool_input": {"url": f"http://127.0.0.1:{config.SERVER_PORT}/api/tars/health"},
+                },
+                {
+                    "id": "visual-precreate",
+                    "title": "Preparar artefato visual existente",
+                    "kind": "tool",
+                    "model": model,
+                    "persona": "tars",
+                    "tool": "desktop_write",
+                    "errorPolicy": "stop",
+                    "instruction": "Crie um arquivo grande para testar reuso idempotente.",
+                    "tool_input": {"filename": "tars-harness-reuse.png", "content": "TARS-HARNESS-REUSE\n" + ("x" * 20000), "mode": "w"},
+                },
+                {
+                    "id": "visual-reuse",
+                    "title": "Reusar Grok Imagine",
+                    "kind": "tool",
+                    "model": model,
+                    "persona": "tars",
+                    "tool": "grok_imagine",
+                    "errorPolicy": "stop",
+                    "instruction": "Reutilize artefato visual existente sem chamar geração nova.",
+                    "tool_input": {
+                        "prompt": "minimal blue diagnostic badge for TARS harness",
+                        "filename": "tars-harness-reuse.png",
+                        "reuse_existing": True,
+                    },
+                },
+            ],
+        },
+    ]
+
+
+def _load_custom_harness_flows() -> list[dict[str, Any]]:
+    path = _harness_flow_store_path()
+    if not path.exists():
+        return []
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        flows = data.get("flows") if isinstance(data, dict) else data
+        return [flow for flow in flows if isinstance(flow, dict)]
+    except Exception:
+        return []
+
+
+def _save_custom_harness_flows(flows: list[dict[str, Any]]) -> None:
+    path = _harness_flow_store_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"flows": flows}, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _all_harness_flows() -> list[dict[str, Any]]:
+    builtins = [{**flow, "source": "builtin"} for flow in _builtin_harness_flows()]
+    custom = [{**flow, "source": flow.get("source") or "custom"} for flow in _load_custom_harness_flows()]
+    by_id: dict[str, dict[str, Any]] = {}
+    for flow in builtins + custom:
+        flow_id = str(flow.get("id") or "").strip()
+        if flow_id:
+            by_id[flow_id] = flow
+    return list(by_id.values())
+
+
+def _harness_flow_summary(flow: dict[str, Any]) -> dict[str, Any]:
+    stages = flow.get("stages") if isinstance(flow.get("stages"), list) else []
+    tools = [str(stage.get("tool") or "") for stage in stages if isinstance(stage, dict) and stage.get("tool")]
+    kinds = [str(stage.get("kind") or "llm") for stage in stages if isinstance(stage, dict)]
+    return {
+        "id": flow.get("id"),
+        "name": flow.get("name") or flow.get("title") or flow.get("id"),
+        "description": flow.get("description") or "",
+        "source": flow.get("source") or "custom",
+        "stages": len(stages),
+        "kinds": sorted(set(kinds)),
+        "tools": sorted(set(tools)),
+    }
+
+
+def _find_harness_flow(flow_id: str) -> dict[str, Any] | None:
+    clean = str(flow_id or "").strip()
+    for flow in _all_harness_flows():
+        if str(flow.get("id") or "") == clean:
+            return flow
+    return None
+
+
+async def _harness_plan_tool_payload(
+    stage: dict[str, Any],
+    tool_id: str,
+    persona: dict[str, Any],
+    provider: str | None,
+    send_model: str,
+    context: str,
+    llm_text: str,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    fallback = _harness_tool_input(stage, llm_text)
+    tool = tools_by_id().get(tool_id)
+    if not tool or not _tool_executable(tool):
+        return fallback, {"source": "fallback", "ok": False, "reason": "ferramenta indisponível ou não executável"}
+    if not provider:
+        return fallback, {"source": "fallback", "ok": False, "reason": "provider LLM indisponível para planejar payload"}
+
+    planner_system = (
+        build_system_prompt(persona)
+        + "\n\n## Harness Tool Contract\n"
+        + "Prepare a entrada para exatamente uma ferramenta já escolhida. "
+        + "Use apenas os parâmetros declarados na schema da ferramenta. "
+        + "Se a instrução pedir efeitos que a ferramenta selecionada não consegue executar, "
+        + "marque can_execute=false e liste unsupported. "
+        + "Para ferramentas de imagem, o campo prompt deve ser apenas uma descrição visual; "
+        + "não coloque instruções de salvar texto, decisões de fluxo ou metadados dentro do prompt visual. "
+        + "Responda somente JSON válido no formato: "
+        + "{\"can_execute\": boolean, \"input\": object, \"summary\": string, \"unsupported\": string[]}."
+    )
+    planner_payload = {
+        "stage": {
+            "id": stage.get("id"),
+            "title": stage.get("title"),
+            "kind": stage.get("kind"),
+            "instruction": stage.get("instruction"),
+        },
+        "selected_tool": {
+            "id": tool.get("id"),
+            "name": tool.get("name"),
+            "description": tool.get("description"),
+            "parameters": tool.get("parameters") or {},
+        },
+        "previous_context": context,
+        "stage_llm_output": llm_text,
+    }
+    try:
+        planned = await dispatch_llm(
+            provider,
+            send_model,
+            planner_system,
+            [{"role": "user", "content": json.dumps(planner_payload, ensure_ascii=False, default=str)}],
+            0.1,
+            900,
+        )
+    except Exception as exc:  # noqa: BLE001
+        return fallback, {"source": "fallback", "ok": False, "reason": f"planejamento falhou: {exc}"}
+
+    parsed = _json_object_from_text(str(planned.get("content") or ""))
+    if not parsed:
+        return fallback, {"source": "fallback", "ok": False, "reason": "planner não retornou JSON válido"}
+
+    raw_input = parsed.get("input") if isinstance(parsed.get("input"), dict) else {}
+    clean_input = _harness_clean_tool_payload(tool, raw_input)
+    runtime_defaults = {
+        key: value
+        for key, value in fallback.items()
+        if str(key).startswith("_harness_") or key in {"force", "reuse_existing", "skip_if_exists", "idempotency_key"}
+    }
+    payload = {**runtime_defaults, **clean_input}
+    if "prompt" in fallback and not str(payload.get("prompt") or "").strip():
+        payload["prompt"] = fallback["prompt"]
+    if "input" in fallback and not str(payload.get("input") or "").strip():
+        payload["input"] = fallback["input"]
+    if "query" in fallback and not str(payload.get("query") or "").strip():
+        payload["query"] = fallback["query"]
+
+    unsupported = parsed.get("unsupported") if isinstance(parsed.get("unsupported"), list) else []
+    can_execute = bool(parsed.get("can_execute", True)) and not unsupported
+    return payload, {
+        "source": "llm",
+        "ok": can_execute,
+        "summary": str(parsed.get("summary") or ""),
+        "unsupported": [str(item) for item in unsupported],
+    }
+
+
+@router.post("/harness/execute")
+async def harness_execute(payload: dict[str, Any] = Body(...)) -> Any:
+    stages = payload.get("stages")
+    if not isinstance(stages, list) or not stages:
+        return JSONResponse({"ok": False, "error": "adicione ao menos uma etapa"}, status_code=400)
+
+    trace_id = str(payload.get("trace_id") or uuid.uuid4())
+    start_index = int(payload.get("start_index", 1) or 1)
+    context_chunks: list[str] = []
+    raw_context = payload.get("context")
+    if isinstance(raw_context, list):
+        context_chunks.extend(str(item).strip() for item in raw_context if str(item).strip())
+    elif isinstance(raw_context, str) and raw_context.strip():
+        context_chunks.append(raw_context.strip())
+
+    previous_results = payload.get("previous_results")
+    if isinstance(previous_results, list):
+        for item in previous_results:
+            if not isinstance(item, dict):
+                continue
+            output = str(item.get("output") or "").strip()
+            if output:
+                context_chunks.append(f"### {item.get('title') or 'Etapa anterior'}\n{output[:4000]}")
+    results: list[dict[str, Any]] = []
+    started = time.time()
+
+    for index, raw_stage in enumerate(stages, start=start_index):
+        if not isinstance(raw_stage, dict):
+            continue
+        stage = raw_stage
+        title = str(stage.get("title") or f"Etapa {index}")
+        kind = str(stage.get("kind") or "llm")
+        model = str(stage.get("model") or config.TARS_MODEL)
+        tool_id = str(stage.get("tool") or "").strip()
+        instruction = str(stage.get("instruction") or "").strip()
+        error_policy = _harness_error_policy(stage)
+        persona = await _harness_persona(str(stage.get("persona") or PERSONA_SLUG))
+        provider, send_model = provider_for_model(model)
+
+        stage_started = time.time()
+        stage_result: dict[str, Any] = {
+            "index": index,
+            "id": stage.get("id"),
+            "title": title,
+            "kind": kind,
+            "model": model,
+            "persona": persona.get("slug"),
+            "tool": tool_id or None,
+            "error_policy": error_policy,
+            "ok": False,
+        }
+
+        try:
+            llm_text = ""
+            context = "\n\n".join(context_chunks[-6:])
+            branch_context = _harness_branch_context(kind, instruction)
+            if kind != "tool":
+                if not provider:
+                    raise RuntimeError(f"nenhum provider disponível para modelo '{model}'")
+                harness_instruction = (
+                    "Execute apenas a etapa atual do fluxo. Use o contexto anterior como referência, "
+                    "mas responda com a saída objetiva desta etapa."
+                )
+                if kind == "branch":
+                    harness_instruction = (
+                        "Esta é uma etapa de decisão. Decida agora; não responda com intenção de pesquisar depois. "
+                        "Se houver inventário de projetos no contexto, escolha exatamente um projeto disponível. "
+                        "Responda somente JSON válido no formato: "
+                        "{\"selected_project\": string, \"project_path\": string, \"reason\": string, "
+                        "\"confidence\": number, \"next_action\": string, \"alternatives\": object[]}."
+                    )
+                system = (
+                    build_system_prompt(persona)
+                    + "\n\n## Harness\n"
+                    + harness_instruction
+                )
+                extra_context = ""
+                if branch_context:
+                    extra_context = "\n\nContexto adicional:\n" + json.dumps(branch_context, ensure_ascii=False, default=str)
+                user_content = (
+                    f"Etapa {index}: {title}\n"
+                    f"Tipo: {kind}\n"
+                    f"Instrução: {instruction or '(sem instrução)'}\n\n"
+                    f"Contexto anterior:\n{context or '(vazio)'}"
+                    f"{extra_context}"
+                )
+                llm = await dispatch_llm(
+                    provider,
+                    send_model,
+                    system,
+                    [{"role": "user", "content": user_content}],
+                    float(payload.get("temperature", 0.35)),
+                    int(payload.get("max_tokens", 1600)),
+                )
+                llm_text = str(llm.get("content") or "").strip()
+                if kind == "branch":
+                    decision = _json_object_from_text(llm_text)
+                    inventory = branch_context.get("project_inventory") if isinstance(branch_context.get("project_inventory"), list) else []
+                    if not decision or not str(decision.get("selected_project") or "").strip():
+                        decision = _harness_fallback_branch_decision(instruction, inventory) or {
+                            "selected_project": "",
+                            "project_path": "",
+                            "reason": "Não foi possível escolher um projeto com o contexto disponível.",
+                            "confidence": 0,
+                            "next_action": "Adicionar contexto ou uma ferramenta de descoberta antes desta decisão.",
+                            "alternatives": [],
+                        }
+                    stage_result["decision"] = decision
+                    llm_text = json.dumps(decision, ensure_ascii=False, default=str)
+                stage_result.update({
+                    "provider": llm.get("provider", provider),
+                    "send_model": llm.get("model", send_model),
+                    "usage": llm.get("usage"),
+                    "output": llm_text,
+                })
+
+            if tool_id:
+                tool_handled = False
+                explicit_payload = _harness_explicit_tool_payload(stage)
+                if explicit_payload is not None:
+                    fallback = _harness_tool_input(stage, llm_text)
+                    tool = tools_by_id().get(tool_id) or {}
+                    runtime_defaults = {
+                        key: value
+                        for key, value in fallback.items()
+                        if str(key).startswith("_harness_") or key in {"force", "reuse_existing", "skip_if_exists", "idempotency_key"}
+                    }
+                    tool_payload = {
+                        **runtime_defaults,
+                        **_harness_clean_tool_payload(tool, explicit_payload),
+                    }
+                    tool_plan = {
+                        "source": "explicit",
+                        "ok": True,
+                        "summary": "payload explícito da etapa",
+                        "unsupported": [],
+                    }
+                else:
+                    tool_payload, tool_plan = await _harness_plan_tool_payload(
+                        stage,
+                        tool_id,
+                        persona,
+                        provider,
+                        send_model,
+                        context,
+                        llm_text,
+                    )
+                stage_result["tool_input"] = _harness_public_value(tool_payload)
+                stage_result["tool_plan"] = tool_plan
+                if tool_plan.get("source") == "llm" and tool_plan.get("ok") is False:
+                    problem = _harness_unsupported_message(tool_plan)
+                    if error_policy == "auto_repair":
+                        repair = await _harness_attempt_repair(
+                            stage,
+                            persona,
+                            provider,
+                            send_model,
+                            context,
+                            llm_text,
+                            problem,
+                            trace_id,
+                        )
+                        stage_result["repair_plan"] = repair.get("plan")
+                        stage_result["repair_results"] = repair.get("results")
+                        if repair.get("ok"):
+                            stage_result["recovered"] = True
+                            stage_result["warning"] = problem
+                            stage_result["output"] = json.dumps(repair.get("output") or repair, ensure_ascii=False, default=str)
+                            tool_handled = True
+                        else:
+                            stage_result["repair_error"] = repair.get("error")
+                            raise RuntimeError(f"{problem}; auto-correção falhou: {repair.get('error')}")
+                    elif error_policy == "continue":
+                        stage_result["warning"] = problem
+                        stage_result["output"] = f"{problem}\nPolítica de erro: continuar com aviso."
+                        tool_handled = True
+                    elif error_policy == "best_effort":
+                        stage_result["warning"] = problem
+                        stage_result["partial"] = True
+                    else:
+                        raise RuntimeError(problem)
+
+                if not tool_handled:
+                    tool_result = await execute_tool(tool_id, tool_payload, source="harness", trace_id=trace_id)
+                    stage_result["tool_result"] = tool_result
+                    if kind == "tool":
+                        stage_result["output"] = json.dumps(tool_result.get("result") or tool_result, ensure_ascii=False, default=str)
+                    if not tool_result.get("ok"):
+                        raise RuntimeError(str(tool_result.get("error") or tool_result.get("result") or "ferramenta falhou"))
+
+            if not stage_result.get("output"):
+                stage_result["output"] = llm_text or "etapa concluída"
+            stage_result["ok"] = True
+            context_chunks.append(
+                f"### {title}\n{str(stage_result.get('output') or '')[:4000]}"
+            )
+        except Exception as exc:  # noqa: BLE001
+            stage_result["error"] = str(exc)
+            if error_policy == "continue":
+                stage_result["warning"] = f"erro ignorado pela política da etapa: {exc}"
+                stage_result["ok"] = True
+                stage_result["output"] = stage_result.get("output") or stage_result["warning"]
+                context_chunks.append(
+                    f"### {title}\n{str(stage_result.get('output') or '')[:4000]}"
+                )
+            else:
+                stage_result["ok"] = False
+                stage_result["output"] = stage_result.get("output") or ""
+
+        stage_result["elapsed_ms"] = int((time.time() - stage_started) * 1000)
+        results.append(stage_result)
+        if not stage_result["ok"]:
+            break
+
+    return {
+        "ok": all(item.get("ok") for item in results) and len(results) == len(stages),
+        "trace_id": trace_id,
+        "elapsed_ms": int((time.time() - started) * 1000),
+        "count": len(stages),
+        "completed": sum(1 for item in results if item.get("ok")),
+        "results": results,
+        "final_output": results[-1].get("output") if results else "",
+    }
+
+
+@router.get("/harness/state")
+async def harness_state() -> dict[str, Any]:
+    return {
+        "ok": True,
+        "stages": [],
+        "count": 0,
+        "resources": {
+            "engines": "/api/tars/chat/models",
+            "tools": "/api/tars/tools",
+            "flows": "/api/tars/harness/flows",
+        },
+    }
+
+
+@router.get("/harness/flows")
+async def harness_flows() -> dict[str, Any]:
+    flows = _all_harness_flows()
+    return {
+        "ok": True,
+        "flows": [_harness_flow_summary(flow) for flow in flows],
+        "count": len(flows),
+    }
+
+
+@router.post("/harness/flows")
+async def harness_create_flow(payload: dict[str, Any] = Body(...)) -> Any:
+    flow_id = str(payload.get("id") or "").strip()
+    stages = payload.get("stages")
+    if not flow_id:
+        return JSONResponse({"ok": False, "error": "id obrigatório"}, status_code=400)
+    if not isinstance(stages, list) or not stages:
+        return JSONResponse({"ok": False, "error": "stages deve ser uma lista não vazia"}, status_code=400)
+    if any(str(flow.get("id") or "") == flow_id and flow.get("source") == "builtin" for flow in _all_harness_flows()):
+        return JSONResponse({"ok": False, "error": "não é permitido sobrescrever fluxo builtin"}, status_code=409)
+
+    flow = {
+        "id": flow_id,
+        "name": str(payload.get("name") or payload.get("title") or flow_id),
+        "description": str(payload.get("description") or ""),
+        "stages": stages,
+        "source": "custom",
+        "updated_at": int(time.time() * 1000),
+    }
+    custom = [item for item in _load_custom_harness_flows() if str(item.get("id") or "") != flow_id]
+    custom.append(flow)
+    _save_custom_harness_flows(custom)
+    return {"ok": True, "flow": flow, "summary": _harness_flow_summary(flow)}
+
+
+@router.post("/harness/flows/run-all")
+async def harness_run_all_flows(payload: dict[str, Any] = Body(default={})) -> dict[str, Any]:
+    body = payload if isinstance(payload, dict) else {}
+    requested = body.get("ids") or body.get("flows")
+    if isinstance(requested, str):
+        requested = [part.strip() for part in requested.split(",") if part.strip()]
+    selected = _all_harness_flows()
+    if isinstance(requested, list) and requested:
+        wanted = {str(item).strip() for item in requested if str(item).strip()}
+        selected = [flow for flow in selected if str(flow.get("id") or "") in wanted]
+
+    results: list[dict[str, Any]] = []
+    started = time.time()
+    for flow in selected:
+        run_payload = {
+            "stages": flow.get("stages") or [],
+            "trace_id": str(body.get("trace_id") or uuid.uuid4()),
+            "max_tokens": int(body.get("max_tokens", 1600) or 1600),
+            "temperature": float(body.get("temperature", 0.25) or 0.25),
+        }
+        result = await harness_execute(run_payload)
+        if isinstance(result, JSONResponse):
+            item = {"ok": False, "error": "harness retornou JSONResponse inesperado"}
+        else:
+            item = dict(result)
+        item["flow"] = _harness_flow_summary(flow)
+        results.append(item)
+        if body.get("stop_on_failure") and not item.get("ok"):
+            break
+
+    passed = sum(1 for item in results if item.get("ok"))
+    total = len(results)
+    return {
+        "ok": total > 0 and passed == total,
+        "elapsed_ms": int((time.time() - started) * 1000),
+        "passed": passed,
+        "failed": total - passed,
+        "total": total,
+        "success_rate": round((passed / total) * 100, 2) if total else 0,
+        "results": results,
+    }
+
+
+@router.get("/harness/flows/{flow_id}")
+async def harness_get_flow(flow_id: str) -> Any:
+    flow = _find_harness_flow(flow_id)
+    if not flow:
+        return JSONResponse({"ok": False, "error": f"fluxo não encontrado: {flow_id}"}, status_code=404)
+    return {"ok": True, "flow": flow, "summary": _harness_flow_summary(flow)}
+
+
+@router.post("/harness/flows/{flow_id}/run")
+async def harness_run_flow(flow_id: str, payload: dict[str, Any] = Body(default={})) -> Any:
+    flow = _find_harness_flow(flow_id)
+    if not flow:
+        return JSONResponse({"ok": False, "error": f"fluxo não encontrado: {flow_id}"}, status_code=404)
+    body = payload if isinstance(payload, dict) else {}
+    run_payload = {
+        "stages": flow.get("stages") or [],
+        "trace_id": str(body.get("trace_id") or uuid.uuid4()),
+        "max_tokens": int(body.get("max_tokens", 1600) or 1600),
+        "temperature": float(body.get("temperature", 0.25) or 0.25),
+    }
+    result = await harness_execute(run_payload)
+    if isinstance(result, JSONResponse):
+        return result
+    return {
+        **result,
+        "flow": _harness_flow_summary(flow),
+    }
+
+
+@router.get("/harness/components")
+async def harness_components() -> dict[str, Any]:
+    from harness import default_registry
+
+    registry = default_registry()
+    return {"components": registry.list(), "count": len(registry.list())}
+
+
+@router.post("/harness/components/{component_id}/run")
+async def harness_run_component(
+    component_id: str,
+    payload: dict[str, Any] = Body(default={}),
+) -> dict[str, Any]:
+    from harness import default_registry
+
+    registry = default_registry()
+    return await registry.run_one(component_id, _harness_ctx(payload))
+
+
+@router.post("/harness/run")
+async def harness_run(payload: dict[str, Any] = Body(default={})) -> dict[str, Any]:
+    from harness import default_registry
+
+    registry = default_registry()
+    ids = payload.get("components") or payload.get("component_ids") or None
+    if isinstance(ids, str):
+        ids = [part.strip() for part in ids.split(",") if part.strip()]
+    if ids is not None and not isinstance(ids, list):
+        return JSONResponse({"ok": False, "error": "components deve ser lista ou CSV"}, status_code=400)
+    clean_ids = [str(item).strip() for item in ids if str(item).strip()] if ids else None
+    return await registry.run_many(clean_ids, _harness_ctx(payload))
+
+
 # ----- Bridges (pontes) ----------------------------------------------------- #
 
 @router.get("/bridges")
@@ -1523,6 +2815,24 @@ def _echo_row(row: Any) -> dict[str, Any]:
     # o front espera a chave "tether"; nosso schema usa "bridge"
     d["tether"] = d.get("bridge")
     return d
+
+
+@router.get("/events")
+async def events_endpoint(
+    limit: int = Query(100, ge=1, le=500),
+    event_type: str = Query("", alias="type"),
+    goal_id: str = Query(""),
+    trace_id: str = Query(""),
+) -> dict[str, Any]:
+    return {
+        "events": event_store.list_events(
+            limit=limit,
+            event_type=event_type,
+            goal_id=goal_id,
+            trace_id=trace_id,
+        ),
+        "summary": event_store.event_summary(),
+    }
 
 
 @router.get("/echoes")
@@ -1746,7 +3056,7 @@ async def service_control(service_id: str, payload: dict[str, Any] = Body(defaul
 _RESERVED_PREFIXES = {
     "health", "persona", "system-prompt", "chat", "tools", "bridges",
     "tethers", "endpoints", "echoes", "ports", "services", "bridge",
-    "goals", "heartbeat", "kill-switch", "memory", "mission-log", "voice", "test", "work", "manifest",
+    "goals", "heartbeat", "kill-switch", "memory", "mission-log", "events", "voice", "test", "harness", "work", "manifest",
 }
 _PROXY_METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH"]
 
@@ -1867,5 +3177,3 @@ async def root() -> dict[str, Any]:
 
 if __name__ == "__main__":
     uvicorn.run(app, host=config.SERVER_HOST, port=config.SERVER_PORT, log_level="info")
-
-

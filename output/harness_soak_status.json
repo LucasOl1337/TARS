@@ -1,0 +1,26 @@
+﻿{
+    "running":  false,
+    "pid":  32828,
+    "run_id":  "20260605-124202",
+    "started":  "2026-06-05T12:42:02.3289835-03:00",
+    "deadline":  "2026-06-05T13:37:02.3289835-03:00",
+    "last_update":  "2026-06-05T13:37:38.1049428-03:00",
+    "iterations":  44,
+    "passed_iterations":  44,
+    "failed_iterations":  0,
+    "log":  "C:\\Projetos\\TARS\\output\\harness_soak_20260605-124202.jsonl",
+    "last":  {
+                 "timestamp":  "2026-06-05T13:37:38.1019412-03:00",
+                 "iteration":  44,
+                 "ok":  true,
+                 "passed":  5,
+                 "failed":  0,
+                 "total":  5,
+                 "success_rate":  100.0,
+                 "elapsed_ms":  73391,
+                 "wall_ms":  73411,
+                 "failed_flows":  [
+
+                                  ]
+             }
+}

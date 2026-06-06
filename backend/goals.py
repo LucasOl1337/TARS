@@ -12,6 +12,7 @@ import uuid
 from typing import Any
 
 from db import get_conn, now_iso
+from event_store import append_event
 from governance import DEFAULT_BUDGET
 
 STATUSES = ("pending", "running", "verifying", "done", "failed", "cancelled", "needs_input")
@@ -79,6 +80,23 @@ def create_goal(
         conn.commit()
     finally:
         conn.close()
+    append_event(
+        "goal.created",
+        {
+            "title": record["title"],
+            "origin": record["origin"],
+            "priority": record["priority"],
+            "definition_of_done": bool(record["definition_of_done"]),
+            "budget": {
+                "max_iterations": record["max_iterations"],
+                "max_seconds": record["max_seconds"],
+                "max_tool_calls": record["max_tool_calls"],
+            },
+        },
+        goal_id=goal_id,
+        trace_id=record["trace_id"],
+        source=record["origin"],
+    )
     return record
 
 
@@ -124,6 +142,12 @@ def update_goal(goal_id: str, **fields: Any) -> None:
         conn.commit()
     finally:
         conn.close()
+    append_event(
+        "goal.updated",
+        {"fields": sorted(fields.keys()), "status": fields.get("status")},
+        goal_id=goal_id,
+        source="goals",
+    )
 
 
 def bump_counters(goal_id: str, iterations: int = 0, tool_calls: int = 0, tokens: int = 0) -> None:
@@ -175,6 +199,12 @@ def add_step(
         conn.commit()
     finally:
         conn.close()
+    append_event(
+        "goal.step_added",
+        {"idx": idx, "phase": phase, "action": action, "ok": bool(ok), "elapsed_ms": elapsed_ms},
+        goal_id=goal_id,
+        source="agent",
+    )
 
 
 def get_steps(goal_id: str, limit: int = 500) -> list[dict[str, Any]]:

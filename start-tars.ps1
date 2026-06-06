@@ -9,17 +9,21 @@
 
 param(
     [switch]$BackendOnly,
-    [switch]$Force
+    [switch]$Force,
+    [switch]$NoBrowser
 )
 
 $ErrorActionPreference = 'Stop'
 $Root      = $PSScriptRoot
 $Backend   = Join-Path $Root 'backend'
 $Dashboard = Join-Path $Root 'dashboard'
+$Logs      = Join-Path $Root 'logs'
 $Python    = Join-Path $Backend '.venv\Scripts\python.exe'
 $BackendPort   = 62026
 $DashboardPort = 62025
 $DashboardUrl  = "http://127.0.0.1:$DashboardPort/"
+
+New-Item -ItemType Directory -Force -Path $Logs | Out-Null
 
 function Free-Port([int]$Port) {
     $conns = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
@@ -28,6 +32,30 @@ function Free-Port([int]$Port) {
         # /T derruba a árvore (cobre supervisores tipo 'tsx watch')
         taskkill /F /T /PID $c.OwningProcess 2>$null | Out-Null
     }
+}
+
+function Test-AutoBrowserDisabled {
+    if ($NoBrowser) { return $true }
+
+    $falseValues = @("0", "false", "no", "off")
+    $trueValues = @("1", "true", "yes", "on")
+    $browser = ([string][Environment]::GetEnvironmentVariable("BROWSER")).Trim().ToLowerInvariant()
+    $terminaldeSuppress = ([string][Environment]::GetEnvironmentVariable("TERMINALDE_SUPPRESS_BROWSER")).Trim().ToLowerInvariant()
+    $noBrowser = ([string][Environment]::GetEnvironmentVariable("NO_BROWSER")).Trim().ToLowerInvariant()
+    $disableOpenBrowser = ([string][Environment]::GetEnvironmentVariable("DISABLE_OPEN_BROWSER")).Trim().ToLowerInvariant()
+    $openBrowser = ([string][Environment]::GetEnvironmentVariable("OPEN_BROWSER")).Trim().ToLowerInvariant()
+    $launchBrowser = ([string][Environment]::GetEnvironmentVariable("LAUNCH_BROWSER")).Trim().ToLowerInvariant()
+    $autoOpenBrowser = ([string][Environment]::GetEnvironmentVariable("AUTO_OPEN_BROWSER")).Trim().ToLowerInvariant()
+
+    if ($browser -eq "none") { return $true }
+    if ($terminaldeSuppress -and -not ($falseValues.Contains($terminaldeSuppress))) { return $true }
+    if ($noBrowser -and -not ($falseValues.Contains($noBrowser))) { return $true }
+    if ($disableOpenBrowser -and -not ($falseValues.Contains($disableOpenBrowser))) { return $true }
+    if ($openBrowser -and -not ($trueValues.Contains($openBrowser))) { return $true }
+    if ($launchBrowser -and -not ($trueValues.Contains($launchBrowser))) { return $true }
+    if ($autoOpenBrowser -and -not ($trueValues.Contains($autoOpenBrowser))) { return $true }
+
+    return $false
 }
 
 # ---- venv + deps ---------------------------------------------------------
@@ -84,13 +112,18 @@ if (-not (Test-Path (Join-Path $Dashboard 'node_modules'))) {
 
 Write-Host "Subindo dashboard em http://127.0.0.1:$DashboardPort ..." -ForegroundColor Cyan
 
-$psi2 = New-Object System.Diagnostics.ProcessStartInfo
-$psi2.FileName = 'npm.cmd'
-$psi2.Arguments = "run dev"
-$psi2.WorkingDirectory = $Dashboard
-$psi2.CreateNoWindow = $true
-$psi2.UseShellExecute = $false
-$fe = [System.Diagnostics.Process]::Start($psi2)
+$DashboardOut = Join-Path $Logs 'dashboard.out.log'
+$DashboardErr = Join-Path $Logs 'dashboard.err.log'
+Remove-Item $DashboardOut, $DashboardErr -ErrorAction SilentlyContinue
+
+$fe = Start-Process `
+    -FilePath 'cmd.exe' `
+    -ArgumentList '/d', '/s', '/c', 'npm run dev' `
+    -WorkingDirectory $Dashboard `
+    -WindowStyle Hidden `
+    -RedirectStandardOutput $DashboardOut `
+    -RedirectStandardError $DashboardErr `
+    -PassThru
 
 $dashboardOk = $false
 for ($i = 0; $i -lt 40; $i++) {
@@ -101,10 +134,13 @@ for ($i = 0; $i -lt 40; $i++) {
     } catch { }
 }
 
-if ($dashboardOk) {
+if ($dashboardOk -and -not (Test-AutoBrowserDisabled)) {
     Start-Process $DashboardUrl
+} elseif ($dashboardOk) {
+    Write-Host "  browser automatico desativado; dashboard disponivel em $DashboardUrl" -ForegroundColor DarkGray
 } else {
     Write-Host "  dashboard NAO respondeu em $DashboardUrl - confira o processo npm/vite (PID $($fe.Id))." -ForegroundColor Red
+    Write-Host "  logs: $DashboardOut / $DashboardErr" -ForegroundColor DarkGray
 }
 
 Write-Host "`nTARS no ar:" -ForegroundColor Green

@@ -1,0 +1,175 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - generic:
+          - img
+          - img
+          - img
+          - img
+          - img
+          - img
+      - generic [ref=e7]:
+        - heading "TARS" [level=1] [ref=e8]
+        - generic [ref=e9]: companion
+    - navigation [ref=e10]:
+      - button "Dimension" [ref=e11] [cursor=pointer]:
+        - img [ref=e12]
+        - generic [ref=e18]: Dimension
+      - button "Missões" [ref=e19] [cursor=pointer]:
+        - img [ref=e20]
+        - generic [ref=e24]: Missões
+      - button "Endpoints" [ref=e25] [cursor=pointer]:
+        - img [ref=e26]
+        - generic [ref=e28]: Endpoints
+      - button "Ferramentas" [ref=e29] [cursor=pointer]:
+        - img [ref=e30]
+        - generic [ref=e32]: Ferramentas
+      - button "Persona" [ref=e33] [cursor=pointer]:
+        - img [ref=e34]
+        - generic [ref=e37]: Persona
+      - button "Voz" [active] [ref=e38] [cursor=pointer]:
+        - img [ref=e39]
+        - generic [ref=e42]: Voz
+    - generic [ref=e46]: TARS online
+    - button [ref=e47] [cursor=pointer]:
+      - img [ref=e48]
+  - main [ref=e50]:
+    - generic [ref=e51]:
+      - generic [ref=e53]: presença de voz + detector de necessidade de fala
+      - generic [ref=e55]: "127.0.0.1 : 62025"
+    - generic [ref=e253]:
+      - generic [ref=e254]:
+        - generic [ref=e255]:
+          - img [ref=e256]
+          - text: voice presence
+        - heading "Voz & Presença" [level=1] [ref=e259]
+        - paragraph [ref=e260]: Monitoramento contínuo de áudio humano. O TARS decide sozinho quando deve falar ou intervir como copiloto de missão.
+      - generic [ref=e261]:
+        - generic [ref=e262]:
+          - generic [ref=e263]:
+            - generic [ref=e264]:
+              - generic [ref=e265]: presença de voz
+              - generic [ref=e266]: Detector de Necessidade de Fala
+            - button [ref=e267] [cursor=pointer]:
+              - img [ref=e268]
+          - generic [ref=e274]: MICROFONE INATIVO - INICIE O MONITORAMENTO PARA VER O WAVEFORM
+          - button "INICIAR MONITORAMENTO CONTÍNUO" [ref=e275] [cursor=pointer]:
+            - img [ref=e276]
+            - generic [ref=e279]: INICIAR MONITORAMENTO CONTÍNUO
+          - generic [ref=e280]:
+            - button "Testar Fluxo Completo (frase de exemplo)" [ref=e281] [cursor=pointer]
+            - button "Testar TTS com parâmetros atuais" [ref=e282] [cursor=pointer]
+          - generic [ref=e283]:
+            - button "CHAMAR JUIZ AGORA (com VAD atual) — Prova manual do fluxo completo" [disabled] [ref=e284]
+            - generic [ref=e285]: Ignora gate de silêncio e força análise imediata do buffer + decisão do GLM
+          - generic [ref=e286]:
+            - button "Run Automated Voice Self-Test Suite (3 scenarios)" [disabled] [ref=e287]
+            - generic [ref=e288]: Runs TTS + Simulate + VAD checks. Results in console + alert.
+          - generic [ref=e289]:
+            - generic [ref=e290]: Clique para ativar o microfone
+            - generic [ref=e291]: "Agressividade: 0.62"
+          - generic [ref=e292]:
+            - slider [ref=e293]: "0.6"
+            - generic [ref=e294]:
+              - generic [ref=e295]: Muito calado
+              - generic [ref=e296]: Proativo
+          - generic [ref=e297]:
+            - generic [ref=e298]: Voz do TARS (TTS)
+            - generic [ref=e299]:
+              - generic [ref=e300]:
+                - generic [ref=e301]:
+                  - generic [ref=e302]: Velocidade
+                  - generic [ref=e303]: "0.95"
+                - slider [ref=e304]: "0.95"
+              - generic [ref=e305]:
+                - generic [ref=e306]:
+                  - generic [ref=e307]: Tom (Pitch)
+                  - generic [ref=e308]: "0.98"
+                - slider [ref=e309]: "0.98"
+              - generic [ref=e310]:
+                - generic [ref=e311]:
+                  - generic [ref=e312]: Volume
+                  - generic [ref=e313]: "0.92"
+                - slider [ref=e314]: "0.92"
+        - generic [ref=e315]:
+          - generic [ref=e316]: estado atual
+          - generic [ref=e317]:
+            - generic [ref=e320]: Em standby
+            - generic [ref=e323]: TARS silencioso
+          - generic [ref=e324]:
+            - button "Testar voz do TARS" [ref=e325] [cursor=pointer]:
+              - img [ref=e326]
+              - text: Testar voz do TARS
+            - button [ref=e328] [cursor=pointer]:
+              - img [ref=e329]
+      - generic [ref=e332]:
+        - generic [ref=e333]:
+          - generic [ref=e334]:
+            - generic [ref=e335]: transcrição ao vivo
+            - generic [ref=e336]: 0 turnos
+          - generic [ref=e338]:
+            - text: Nenhuma fala transcrita ainda.
+            - text: Ative o monitoramento e comece a falar.
+        - generic [ref=e339]:
+          - generic [ref=e340]:
+            - generic [ref=e341]: decisões do detector
+            - generic [ref=e342]: o que o TARS pensou
+          - generic [ref=e344]: O detector ainda não emitiu julgamentos.
+      - generic [ref=e345]:
+        - generic [ref=e347]: voz do TARS
+        - generic [ref=e348]:
+          - combobox [ref=e349]:
+            - option "Draven OmniVoice Local PT-BR (pt-BR)" [selected]
+            - option "Vladimir OmniVoice Local PT-BR (pt-BR)"
+            - option "Gangplank OmniVoice Local PT-BR (pt-BR)"
+            - option "Ahri OmniVoice Local PT-BR (pt-BR)"
+            - option "Darius OmniVoice Local PT-BR (pt-BR)"
+            - option "Irelia OmniVoice Local PT-BR (pt-BR)"
+            - option "Jayce OmniVoice Local PT-BR (pt-BR)"
+            - option "Kai'Sa OmniVoice Local PT-BR (pt-BR)"
+            - option "Master Yi OmniVoice Local PT-BR (pt-BR)"
+            - option "Sett OmniVoice Local PT-BR (pt-BR)"
+            - option "Yasuo OmniVoice Local PT-BR (pt-BR)"
+            - option "Akshan OmniVoice Local PT-BR (pt-BR)"
+            - option "Alistar OmniVoice Local PT-BR (pt-BR)"
+            - option "Anivia OmniVoice Local PT-BR (pt-BR)"
+            - option "Braum OmniVoice Local PT-BR (pt-BR)"
+            - option "Corki OmniVoice Local PT-BR (pt-BR)"
+            - option "Diana OmniVoice Local PT-BR (pt-BR)"
+            - option "Zed OmniVoice Local PT-BR (pt-BR)"
+            - option "Graves OmniVoice Local PT-BR (pt-BR)"
+            - option "Ivern OmniVoice Local PT-BR (pt-BR)"
+            - option "Lillia OmniVoice Local PT-BR (pt-BR)"
+            - option "Nidalee OmniVoice Local PT-BR (pt-BR)"
+            - option "Olaf OmniVoice Local PT-BR (pt-BR)"
+            - option "Ornn OmniVoice Local PT-BR (pt-BR)"
+            - option "Shaco OmniVoice Local PT-BR (pt-BR)"
+            - option "Sion OmniVoice Local PT-BR (pt-BR)"
+            - option "Gustavo Oliveira OmniVoice Local PT-BR (pt-BR)"
+            - option "Alexandre (pt-BR)"
+            - option "Renan melo (pt-BR)"
+            - option "Jinx (Yume clone) (pt-BR)"
+            - option "Lux (Yume clone) (pt-BR)"
+            - option "Ezreal (Yume clone) (pt-BR)"
+            - option "Katarina (Yume clone) (pt-BR)"
+            - option "Garen (Yume clone) (pt-BR)"
+            - option "Thresh (Yume clone) (pt-BR)"
+          - button "Testar voz" [ref=e350] [cursor=pointer]:
+            - img [ref=e351]
+            - text: Testar voz
+          - generic [ref=e355]: Voz clonada via OmniVoice (Kamui). Cai pro TTS do navegador se o serviço estiver fora.
+        - generic [ref=e356]:
+          - generic [ref=e357]: Reconhecimento (STT)
+          - generic [ref=e358]:
+            - button "Whisper (local)" [ref=e359] [cursor=pointer]
+            - button "Navegador" [ref=e360] [cursor=pointer]
+          - generic [ref=e361]: Whisper transcreve no servidor (offline, sem Google). Navegador é o fallback.
+        - group [ref=e362]:
+          - generic "Voz de fallback (navegador)" [ref=e363] [cursor=pointer]
+          - option "Microsoft Daniel - Portuguese (Brazil) (pt-BR)"
+          - option "Microsoft Mark - English (United States) (en-US)" [selected]
+          - option "Microsoft Zira - English (United States) (en-US)"
+          - option "Microsoft David - English (United States) (en-US)"
+          - option "Microsoft Maria - Portuguese (Brazil) (pt-BR)"
+      - generic [ref=e364]: O TARS usa o modelo glm-5.1 (z.ai) ou OpenRouter como juiz da necessidade de fala.

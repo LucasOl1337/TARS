@@ -4,14 +4,14 @@
 
 @layer base {
   :root {
-    --radius: 0.75rem;
+    --radius: 0.5rem;
 
     /* TARS — vazio espacial (tom azul-aço frio) */
     --k-void:        #080a0e;       /* fundo absoluto: vácuo */
     --k-void-2:      #0e1116;       /* fundo da sidebar */
-    --k-surface:     rgba(30, 36, 44, 0.55);  /* painéis flutuantes (instrumentos) */
-    --k-surface-hi:  rgba(40, 48, 58, 0.72);
-    --k-input:       rgba(16, 20, 26, 0.85);
+    --k-surface:     rgba(17, 21, 28, 0.72);  /* painéis flutuantes (instrumentos) */
+    --k-surface-hi:  rgba(34, 41, 51, 0.78);
+    --k-input:       rgba(8, 11, 16, 0.88);
 
     /* Accent Asiimov — branco-aço técnico (era o vermelho Sharingan) */
     --k-sharingan:        #dfe6ee;
@@ -60,6 +60,10 @@
     overflow-x: hidden;
   }
 
+  button, input, textarea, select {
+    font: inherit;
+  }
+
   ::selection {
     background: var(--k-sharingan-soft);
     color: var(--k-text);
@@ -78,9 +82,90 @@
 }
 
 @layer components {
+  .tars-scene3d {
+    z-index: 0;
+    opacity: 0.84;
+  }
+
+  .tars-scene3d canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .tars-grid {
+    opacity: 0.62;
+    background-image:
+      linear-gradient(rgba(223,230,238,0.026) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(223,230,238,0.026) 1px, transparent 1px),
+      linear-gradient(rgba(84,214,164,0.018) 1px, transparent 1px);
+    background-size: 64px 64px, 64px 64px, 256px 256px;
+    mask-image: linear-gradient(90deg, transparent 0%, black 18%, black 82%, transparent 100%);
+    -webkit-mask-image: linear-gradient(90deg, transparent 0%, black 18%, black 82%, transparent 100%);
+  }
+
+  .tars-scanlines {
+    opacity: 0.26;
+    background: repeating-linear-gradient(
+      180deg,
+      rgba(255,255,255,0.026) 0,
+      rgba(255,255,255,0.026) 1px,
+      transparent 1px,
+      transparent 4px
+    );
+    mix-blend-mode: soft-light;
+  }
+
+  .mission-shell {
+    position: relative;
+    overflow: hidden;
+    background:
+      linear-gradient(135deg, rgba(223,230,238,0.075), rgba(84,214,164,0.028) 42%, rgba(224,168,70,0.022)),
+      rgba(8, 11, 16, 0.64);
+    border: 1px solid rgba(223, 230, 238, 0.12);
+    box-shadow:
+      0 18px 60px rgba(0, 0, 0, 0.48),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+  }
+
+  .mission-shell::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(90deg, rgba(223,230,238,0.09), transparent 24%),
+      linear-gradient(180deg, transparent 62%, rgba(84,214,164,0.035));
+    opacity: 0.72;
+  }
+
+  .mission-shell > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .instrument-card {
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.042), rgba(255,255,255,0.014)),
+      rgba(8, 11, 16, 0.58);
+    border: 1px solid rgba(223, 230, 238, 0.095);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.035), 0 14px 36px rgba(0,0,0,0.34);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .panel-kicker {
+    @apply flex items-center gap-2 text-[10px] font-semibold uppercase;
+    color: var(--k-text-mute);
+  }
+
   /* ─── Painel suspenso na dimensão ─── */
   .void-panel {
-    background: var(--k-surface);
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.012)),
+      var(--k-surface);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
     border: 1px solid var(--k-border);
@@ -88,6 +173,20 @@
       0 6px 24px rgba(0, 0, 0, 0.45),
       inset 0 1px 0 rgba(255, 255, 255, 0.02);
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+  }
+  .void-panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-top: 1px solid rgba(255,255,255,0.035);
+    background: linear-gradient(120deg, rgba(223,230,238,0.032), transparent 38%);
+  }
+  .void-panel > * {
+    position: relative;
+    z-index: 1;
   }
   .void-panel:hover {
     border-color: var(--k-border-hover);
@@ -98,7 +197,7 @@
 
   /* ─── Item de navegação (sidebar) ─── */
   .rift-item {
-    @apply flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 cursor-pointer;
+    @apply flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all duration-300 cursor-pointer;
     color: var(--k-text-mute);
     position: relative;
   }
@@ -124,7 +223,7 @@
 
   /* ─── Badge de estado ─── */
   .state-badge {
-    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wide uppercase;
+    @apply inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[10px] font-semibold uppercase;
   }
   .state-badge.tethered {
     background: var(--k-tethered-bg);
@@ -170,8 +269,8 @@
   /* ─── Sticky-note card adaptado ao void ─── */
   .sticky-card {
     background: linear-gradient(135deg,
-      rgba(38, 18, 38, 0.65) 0%,
-      rgba(28, 14, 28, 0.55) 100%);
+      rgba(24, 29, 36, 0.82) 0%,
+      rgba(10, 13, 18, 0.68) 100%);
     backdrop-filter: blur(28px);
     -webkit-backdrop-filter: blur(28px);
     border: 1px solid var(--k-border);
@@ -184,13 +283,13 @@
     overflow: hidden;
   }
   .sticky-card::before {
-    /* canto superior "dobrado" — efeito sticky-note sutil */
     content: '';
     position: absolute;
     top: 0; right: 0;
-    width: 16px; height: 16px;
-    background: linear-gradient(225deg, var(--k-sharingan-soft) 50%, transparent 50%);
-    opacity: 0.5;
+    width: 42%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(223,230,238,0.36));
+    opacity: 0.75;
     pointer-events: none;
   }
   .sticky-card:hover {
@@ -209,7 +308,7 @@
 
   /* ─── Tab pill (Entrada / Saída) ─── */
   .tab-pill {
-    @apply px-5 py-2 rounded-lg text-xs font-semibold tracking-[0.18em] uppercase transition-all duration-200 cursor-pointer;
+    @apply rounded-lg px-5 py-2 text-xs font-semibold uppercase transition-all duration-200 cursor-pointer;
     color: var(--k-text-mute);
     background: transparent;
     border: 1px solid transparent;
@@ -226,7 +325,7 @@
 
   /* ─── Botões ─── */
   .btn-rift {
-    @apply px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 cursor-pointer;
+    @apply rounded-lg px-5 py-2.5 text-sm font-medium transition-all duration-300 cursor-pointer;
     background: var(--k-input);
     color: var(--k-text-soft);
     border: 1px solid var(--k-border);
@@ -251,6 +350,12 @@
     background-clip: text;
   }
 
+  .mono-stat {
+    @apply rounded-lg border p-3;
+    background: rgba(0, 0, 0, 0.22);
+    border-color: var(--k-border);
+  }
+
   /* ─── Tomoe — três vírgulas do Sharingan (sutil) ─── */
   .tomoe-ring {
     position: relative;
@@ -273,4 +378,10 @@
   .tomoe-ring::before { top: 8%; left: 50%; transform: translateX(-50%) rotate(0deg); }
   .tomoe-ring::after  { bottom: 18%; right: 12%; transform: rotate(120deg); }
   .tomoe-ring > .tomoe-3 { bottom: 18%; left: 12%; transform: rotate(240deg); }
+}
+
+@media (max-width: 760px) {
+  .tars-scene3d {
+    opacity: 0.52;
+  }
 }

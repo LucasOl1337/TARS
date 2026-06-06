@@ -1,0 +1,20 @@
+{
+  "id": "project_scan",
+  "name": "Inspecionar Projetos",
+  "description": "Lista projetos sob C:\\Projetos ou inspeciona um projeto específico de forma rasa e segura.",
+  "category": "sistema",
+  "kind": "tool",
+  "provider": "tars",
+  "capabilities": ["filesystem", "projetos", "descoberta"],
+  "tags": ["project", "scan", "filesystem"],
+  "prompt_instruction": "Use para descobrir projetos locais ou inspecionar a raiz de um projeto antes de decidir um caminho.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "project": { "type": "string", "description": "nome do projeto sob C:\\Projetos, opcional" },
+      "path": { "type": "string", "description": "caminho sob C:\\Projetos, opcional" },
+      "limit": { "type": "integer", "description": "máximo de entradas retornadas" }
+    }
+  },
+  "invoke": { "type": "builtin", "handler": "project_scan" }
+}

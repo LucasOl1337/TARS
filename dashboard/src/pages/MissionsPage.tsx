@@ -244,14 +244,15 @@ export default function MissionsPage() {
   return (
     <div className="space-y-8">
       {/* header */}
-      <motion.div variants={fadeUp} initial="hidden" animate="show" className="flex items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl" style={{ background: theme.sharinganSoft, border: `1px solid ${theme.borderHover}` }}>
-          <Target className="w-5 h-5" style={{ color: theme.sharingan }} />
-        </div>
+      <motion.div variants={fadeUp} initial="hidden" animate="show" className="mission-shell rounded-lg p-5 sm:p-6">
         <div>
-          <h1 className="void-title text-4xl">Missões</h1>
-          <p className="mt-1 text-sm" style={{ color: theme.textSoft }}>
-            Dê um objetivo ao TARS e assista ele executar de forma autônoma — raciocínio, ferramentas e verificação ao vivo.
+          <div className="panel-kicker">
+            <Target className="h-3.5 w-3.5" />
+            mission control
+          </div>
+          <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl" style={{ color: theme.text }}>Missões</h1>
+          <p className="mt-2 max-w-3xl text-sm leading-relaxed" style={{ color: theme.textSoft }}>
+            Dê um objetivo ao TARS e assista ele executar de forma autônoma: raciocínio, ferramentas e verificação ao vivo.
           </p>
         </div>
       </motion.div>

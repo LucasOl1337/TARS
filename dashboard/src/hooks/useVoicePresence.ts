@@ -132,6 +132,10 @@ export function useVoicePresence(opts: UseVoicePresenceOptions = {}) {
   const vadActiveSinceRef = useRef<number | null>(null);
   const lastVADJudgeCallRef = useRef<number | null>(null);
   const recentJudgeOutcomesRef = useRef<Array<{ ts: number; success: boolean }>>([]);
+  const judgeInFlightRef = useRef(false);
+  const lastJudgedBufferRef = useRef('');
+  const consecutiveJudgeFailuresRef = useRef(0);
+  const judgeDebounceRef = useRef<number | null>(null);
 
   // STT engine: 'whisper' = servidor (local, offline, robusto) · 'webspeech' =
   // navegador (Google, frágil — só fallback). Refs evitam stale closures.
@@ -144,6 +148,8 @@ export function useVoicePresence(opts: UseVoicePresenceOptions = {}) {
   const whisperRafRef = useRef<number | null>(null);
   const whisperRecorderRef = useRef<MediaRecorder | null>(null);
   const whisperActiveRef = useRef(false);
+  const sttInFlightRef = useRef(false);
+  const pendingSttBlobRef = useRef<Blob | null>(null);
 
   useEffect(() => { sttEngineRef.current = sttEngine; }, [sttEngine]);
   useEffect(() => { isSpeakingRef.current = state.isSpeaking; }, [state.isSpeaking]);
@@ -295,9 +301,14 @@ export function useVoicePresence(opts: UseVoicePresenceOptions = {}) {
   }, [speakBrowser]);
 
   // Chama o juiz no backend (aceita VAD opcional para decisões mais contextuais)
-  const callJudge = useCallback(async (currentVADLevel?: number) => {
+  const callJudge = useCallback(async (currentVADLevel?: number, callOpts?: { force?: boolean }) => {
     const buffer = transcriptBufferRef.current;
     if (!buffer || buffer.length < 6) return;
+    if (judgeInFlightRef.current && !callOpts?.force) return;
+    if (!callOpts?.force && buffer === lastJudgedBufferRef.current) return;
+
+    judgeInFlightRef.current = true;
+    lastJudgedBufferRef.current = buffer;
 
     const body: any = {
       transcript: buffer,
@@ -307,11 +318,15 @@ export function useVoicePresence(opts: UseVoicePresenceOptions = {}) {
       body.vad_level = currentVADLevel;
     }
 
+    const ctrl = new AbortController();
+    const timer = window.setTimeout(() => ctrl.abort(), 22000);
+
     try {
       const res = await fetch('/api/tars/voice/judge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
+        signal: ctrl.signal,
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
@@ -351,21 +366,42 @@ export function useVoicePresence(opts: UseVoicePresenceOptions = {}) {
         ...recentJudgeOutcomesRef.current.slice(-9),
         { ts: Date.now(), success: true }
       ];
-      setState(s => ({ ...s, lastJudgeSuccessTs: lastJudgeSuccessTsRef.current }));
+      consecutiveJudgeFailuresRef.current = 0;
+      setState(s => ({ ...s, lastJudgeSuccessTs: lastJudgeSuccessTsRef.current, error: null }));
     } catch (e: any) {
       // Não poluir a UI com erros de rede/juiz toda hora
       console.warn('Judge call failed:', e);
+      lastJudgedBufferRef.current = '';
+      consecutiveJudgeFailuresRef.current += 1;
       lastJudgeCallTsRef.current = Date.now();
       recentJudgeOutcomesRef.current = [
         ...recentJudgeOutcomesRef.current.slice(-9),
         { ts: Date.now(), success: false }
       ];
-      // Só mostra erro grave
-      if (e.message?.includes('Failed to fetch')) {
-        setState(s => ({ ...s, error: 'Erro de conexão com o backend do detector de voz' }));
+      // Só mostra erro depois de falhas consecutivas: uma chamada perdida não
+      // significa que o backend morreu, principalmente durante STT/LLM local.
+      if (consecutiveJudgeFailuresRef.current >= 2) {
+        const timedOut = e?.name === 'AbortError';
+        setState(s => ({
+          ...s,
+          error: timedOut
+            ? 'Detector de voz demorou demais para responder; tentando novamente.'
+            : 'Erro de conexão com o backend do detector de voz',
+        }));
       }
+    } finally {
+      clearTimeout(timer);
+      judgeInFlightRef.current = false;
     }
   }, [pushTranscript, speak]);
+
+  const scheduleJudge = useCallback((delayMs = 450, vadLevel?: number) => {
+    if (judgeDebounceRef.current) clearTimeout(judgeDebounceRef.current);
+    judgeDebounceRef.current = window.setTimeout(() => {
+      judgeDebounceRef.current = null;
+      callJudge(vadLevel ?? lastVadLevelRef.current);
+    }, delayMs) as unknown as number;
+  }, [callJudge]);
 
   // === STT via Whisper local (servidor) ====================================
   // Captura o microfone com MediaRecorder e segmenta por VAD (RMS): cada janela
@@ -373,20 +409,43 @@ export function useVoicePresence(opts: UseVoicePresenceOptions = {}) {
   // offline, e sem a babá de restart que o webkitSpeechRecognition exige.
 
   const transcribeSegment = useCallback(async (blob: Blob) => {
+    if (sttInFlightRef.current) {
+      pendingSttBlobRef.current = blob;
+      return;
+    }
+
+    sttInFlightRef.current = true;
+    setState(s => ({ ...s, currentInterim: 'Transcrevendo...' }));
+
+    const ctrl = new AbortController();
+    const timer = window.setTimeout(() => ctrl.abort(), 25000);
+
     try {
       const fd = new FormData();
       fd.append('file', blob, 'segment.webm');
-      const res = await fetch('/api/tars/voice/stt?language=pt', { method: 'POST', body: fd });
+      const res = await fetch('/api/tars/voice/stt?language=pt', { method: 'POST', body: fd, signal: ctrl.signal });
       if (!res.ok) return;
       const data = await res.json();
       const text = String(data?.text || '').trim();
       if (text) {
         pushTranscript('human', text);
-        transcriptBufferRef.current = (transcriptBufferRef.current + ' ' + text).trim().slice(-1400);
         lastSpeechTsRef.current = Date.now();
+        scheduleJudge(350, lastVadLevelRef.current);
       }
-    } catch { /* rede/Whisper indisponível — ignora o segmento */ }
-  }, [pushTranscript]);
+    } catch (e: any) {
+      if (e?.name !== 'AbortError') console.warn('STT segment failed:', e);
+    } finally {
+      clearTimeout(timer);
+      sttInFlightRef.current = false;
+      setState(s => ({ ...s, currentInterim: '' }));
+
+      const pending = pendingSttBlobRef.current;
+      pendingSttBlobRef.current = null;
+      if (pending && isListeningRef.current) {
+        window.setTimeout(() => transcribeSegment(pending), 0);
+      }
+    }
+  }, [pushTranscript, scheduleJudge]);
 
   const stopWhisperCapture = useCallback(() => {
     whisperActiveRef.current = false;
@@ -394,6 +453,8 @@ export function useVoicePresence(opts: UseVoicePresenceOptions = {}) {
     const rec = whisperRecorderRef.current;
     if (rec && rec.state !== 'inactive') { try { rec.stop(); } catch {} }
     whisperRecorderRef.current = null;
+    sttInFlightRef.current = false;
+    pendingSttBlobRef.current = null;
     if (whisperAudioCtxRef.current) { try { whisperAudioCtxRef.current.close(); } catch {} whisperAudioCtxRef.current = null; }
     if (whisperStreamRef.current) {
       whisperStreamRef.current.getTracks().forEach(t => { try { t.stop(); } catch {} });
@@ -425,10 +486,10 @@ export function useVoicePresence(opts: UseVoicePresenceOptions = {}) {
       let speechStart = 0;
       let silenceStart = 0;
 
-      const SPEECH_RMS = 0.035;   // limiar de fala
-      const SILENCE_MS = 700;     // silêncio que fecha o segmento
-      const MIN_SPEECH_MS = 250;  // ignora estalos curtos
-      const MAX_SEG_MS = 12000;   // corta segmentos muito longos
+      const SPEECH_RMS = 0.026;   // limiar de fala
+      const SILENCE_MS = 420;     // silêncio que fecha o segmento
+      const MIN_SPEECH_MS = 180;  // ignora estalos curtos
+      const MAX_SEG_MS = 6500;    // corta segmentos muito longos
 
       const beginSeg = () => {
         if (segActive) return;
@@ -443,14 +504,16 @@ export function useVoicePresence(opts: UseVoicePresenceOptions = {}) {
             chunks = [];
             if (dur >= MIN_SPEECH_MS && blob.size > 1500) transcribeSegment(blob);
           };
-          rec.start();
+          rec.start(250);
           segActive = true;
           speechStart = Date.now();
+          setState(s => ({ ...s, currentInterim: 'Ouvindo...' }));
         } catch { segActive = false; }
       };
       const endSeg = () => {
         segActive = false;
         silenceStart = 0;
+        setState(s => ({ ...s, currentInterim: 'Transcrevendo...' }));
         const rec = whisperRecorderRef.current;
         if (rec && rec.state !== 'inactive') { try { rec.stop(); } catch {} }
         whisperRecorderRef.current = null;
@@ -521,6 +584,7 @@ export function useVoicePresence(opts: UseVoicePresenceOptions = {}) {
       }
       stopWhisperCapture();
       if (judgeTimerRef.current) { clearInterval(judgeTimerRef.current); judgeTimerRef.current = null; }
+      if (judgeDebounceRef.current) { clearTimeout(judgeDebounceRef.current); judgeDebounceRef.current = null; }
       if (healthCheckTimerRef.current) { clearInterval(healthCheckTimerRef.current); healthCheckTimerRef.current = null; }
       if (uptimeTimerRef.current) { clearInterval(uptimeTimerRef.current); uptimeTimerRef.current = null; }
       isListeningRef.current = false;
@@ -580,8 +644,8 @@ export function useVoicePresence(opts: UseVoicePresenceOptions = {}) {
 
       if (finalText) {
         pushTranscript('human', finalText);
-        transcriptBufferRef.current = (transcriptBufferRef.current + ' ' + finalText).trim().slice(-1400);
         lastSpeechTsRef.current = Date.now();
+        scheduleJudge(250, lastVadLevelRef.current);
       }
       setState(s => ({ ...s, currentInterim: interim }));
     };
@@ -679,7 +743,7 @@ export function useVoicePresence(opts: UseVoicePresenceOptions = {}) {
       isListeningRef.current = false;
     }
     } // fim de startWebSpeech
-  }, [pushTranscript, callJudge, options.silenceFlushMs, prewarmTts, startWhisperCapture, stopWhisperCapture, startMonitoringTimers]);
+  }, [pushTranscript, callJudge, scheduleJudge, options.silenceFlushMs, prewarmTts, startWhisperCapture, stopWhisperCapture, startMonitoringTimers]);
 
   // Carrega o catálogo de vozes do OmniVoice ao montar.
   useEffect(() => {
@@ -693,6 +757,7 @@ export function useVoicePresence(opts: UseVoicePresenceOptions = {}) {
         try { recognitionRef.current.stop(); } catch {}
       }
       if (judgeTimerRef.current) clearInterval(judgeTimerRef.current);
+      if (judgeDebounceRef.current) clearTimeout(judgeDebounceRef.current);
       if (healthCheckTimerRef.current) clearInterval(healthCheckTimerRef.current);
       if (uptimeTimerRef.current) clearInterval(uptimeTimerRef.current);
       if (synthRef.current) synthRef.current.cancel();
@@ -708,6 +773,7 @@ export function useVoicePresence(opts: UseVoicePresenceOptions = {}) {
   const clearTranscript = useCallback(() => {
     setState(s => ({ ...s, transcript: [], decisions: [], currentInterim: '' }));
     transcriptBufferRef.current = '';
+    lastJudgedBufferRef.current = '';
   }, []);
 
   const testSpeak = useCallback((text?: string) => {
@@ -718,10 +784,9 @@ export function useVoicePresence(opts: UseVoicePresenceOptions = {}) {
   // Método limpo para testes (usado pelos botões de teste na página)
   const simulateHumanSpeech = useCallback((text: string) => {
     pushTranscript('human', text);
-    transcriptBufferRef.current = (transcriptBufferRef.current + ' ' + text).trim().slice(-1400);
     lastSpeechTsRef.current = Date.now();
     // Força uma chamada ao juiz imediatamente para teste
-    setTimeout(() => callJudge(), 100);
+    setTimeout(() => callJudge(lastVadLevelRef.current, { force: true }), 100);
   }, [pushTranscript, callJudge]);
 
   // Exposto para a UI fazer VAD-driven judge calls (tech ativa profissional)
@@ -738,7 +803,7 @@ export function useVoicePresence(opts: UseVoicePresenceOptions = {}) {
   const forceJudgeCall = useCallback(() => {
     if (!isListeningRef.current) return;
     const currentVAD = lastVadLevelRef.current;
-    callJudge(currentVAD > 0 ? currentVAD : undefined);
+    callJudge(currentVAD > 0 ? currentVAD : undefined, { force: true });
   }, [callJudge]);
 
   // === Professional VAD ownership (moved into hook for proper encapsulation) ===
@@ -785,13 +850,20 @@ export function useVoicePresence(opts: UseVoicePresenceOptions = {}) {
       clearInterval(judgeTimerRef.current);
       judgeTimerRef.current = null;
     }
+    if (judgeDebounceRef.current) {
+      clearTimeout(judgeDebounceRef.current);
+      judgeDebounceRef.current = null;
+    }
     if (healthCheckTimerRef.current) {
       clearInterval(healthCheckTimerRef.current);
       healthCheckTimerRef.current = null;
     }
+    stopWhisperCapture();
     isListeningRef.current = false;
     restartCountRef.current = 0;
     listeningStartTimeRef.current = null;
+    lastJudgedBufferRef.current = '';
+    consecutiveJudgeFailuresRef.current = 0;
 
     setState(s => ({
       ...s,
@@ -806,7 +878,7 @@ export function useVoicePresence(opts: UseVoicePresenceOptions = {}) {
     setTimeout(() => {
       toggleListening();
     }, 300);
-  }, [toggleListening]);
+  }, [toggleListening, stopWhisperCapture]);
 
   // Self-Test Suite profissional - agora realmente verifica respostas do juiz
   const runVoiceSelfTestSuite = useCallback(async () => {

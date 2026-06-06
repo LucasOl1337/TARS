@@ -1,0 +1,22 @@
+{
+  "id": "assert_check",
+  "name": "Verificar Condições",
+  "description": "Executa verificações determinísticas para fluxos do Harness: arquivos no workspace/Desktop, projeto local, HTTP local/remoto e memória.",
+  "category": "teste",
+  "kind": "tool",
+  "provider": "tars",
+  "capabilities": ["teste", "assert", "verificação", "harness"],
+  "tags": ["assert", "test", "harness", "verify"],
+  "prompt_instruction": "Use para validar objetivamente que uma etapa anterior produziu o estado esperado.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "checks": {
+        "type": "array",
+        "description": "lista de checks. kinds: workspace_file, desktop_file, project_exists, http_ok, memory_contains"
+      }
+    },
+    "required": ["checks"]
+  },
+  "invoke": { "type": "builtin", "handler": "assert_check" }
+}

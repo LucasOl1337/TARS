@@ -13,6 +13,7 @@ e depois varredura da pasta de sessão por uma imagem nova e utilizável.
 from __future__ import annotations
 
 import os
+import hashlib
 import shutil
 import subprocess
 import time
@@ -116,13 +117,62 @@ def _find_new_image(roots: list[Path], snapshot: dict[str, float], after_ts: flo
     return best[1] if best else None
 
 
-def _resolve_dest(filename: str | None, dest: str | None, output_path: str | None) -> Path:
+def _usable_image(path: Path) -> bool:
+    try:
+        return path.is_file() and path.stat().st_size >= _MIN_BYTES
+    except OSError:
+        return False
+
+
+def _stable_name(idempotency_key: str) -> str:
+    digest = hashlib.sha256(idempotency_key.encode("utf-8", "replace")).hexdigest()[:16]
+    return f"grok-imagine-{digest}.png"
+
+
+def _resolve_dest(
+    filename: str | None,
+    dest: str | None,
+    output_path: str | None,
+    idempotency_key: str | None = None,
+) -> Path:
     if output_path:
         p = Path(output_path)
         return p if p.is_absolute() else (desktop_dir() / p)
     base = Path(dest) if dest else desktop_dir()
-    name = filename or f"grok-imagine-{int(time.time())}.png"
+    name = filename or (_stable_name(idempotency_key) if idempotency_key else f"grok-imagine-{int(time.time())}.png")
     return base / name
+
+
+def _build_imagine_prompt(prompt: str, started: float, force: bool) -> str:
+    nonce = ""
+    if force:
+        nonce = (
+            f"\nGeneration request id: tars-{int(started * 1000)}. "
+            "This id is only to avoid cached execution; do not render it."
+        )
+    return (
+        f"/imagine {prompt}{nonce}\n"
+        "Do not add text or watermark.\n"
+        "When the image is generated, answer only with a short confirmation."
+    )
+
+
+def _run_grok(full_prompt: str, timeout: int) -> tuple[str, str]:
+    cmd = [
+        grok_executable(), "--cwd", str(_grok_cwd()),
+        "-p", full_prompt, "--no-subagents", "--output-format", "plain",
+    ]
+    try:
+        proc = subprocess.run(
+            cmd, capture_output=True, text=True, timeout=timeout,
+            encoding="utf-8", errors="replace", cwd=str(_grok_cwd()),
+        )
+        return proc.stdout or "", proc.stderr or ""
+    except subprocess.TimeoutExpired as exc:
+        stdout = (exc.stdout or b"").decode("utf-8", "replace") if isinstance(exc.stdout, bytes) else (exc.stdout or "")
+        stderr = (exc.stderr or b"").decode("utf-8", "replace") if isinstance(exc.stderr, bytes) else (exc.stderr or "")
+        # o grok pode ter gerado a imagem mesmo após o timeout do confirm — segue pra varredura
+        return stdout, stderr
 
 
 def generate(
@@ -131,6 +181,9 @@ def generate(
     dest: str | None = None,
     output_path: str | None = None,
     timeout: int = 200,
+    force: bool = False,
+    reuse_existing: bool = False,
+    idempotency_key: str | None = None,
 ) -> dict[str, Any]:
     prompt = str(prompt or "").strip()
     if not prompt:
@@ -144,7 +197,7 @@ def generate(
     except Exception:
         pass
 
-    dest_path = _resolve_dest(filename, dest, output_path)
+    dest_path = _resolve_dest(filename, dest, output_path, idempotency_key)
     # destino deve ficar sob o perfil do usuário ou o workspace do TARS
     home = Path(os.environ.get("USERPROFILE") or Path.home()).resolve()
     try:
@@ -157,34 +210,56 @@ def generate(
         return {"ok": False, "error": f"destino inválido: {exc}"}
     dest_resolved.parent.mkdir(parents=True, exist_ok=True)
 
+    if reuse_existing and not force and _usable_image(dest_resolved):
+        return {
+            "ok": True,
+            "reused": True,
+            "saved_to": str(dest_resolved),
+            "bytes": dest_resolved.stat().st_size,
+            "exists": True,
+            "prompt": prompt,
+            "idempotency_key": idempotency_key,
+        }
+
     roots = _session_roots()
     snapshot = _scan_images(roots)
     started = time.time()
 
-    full_prompt = (
-        f"/imagine {prompt}\n"
-        "Do not add text or watermark.\n"
-        "When the image is generated, answer only with a short confirmation."
-    )
-    cmd = [
-        grok_executable(), "--cwd", str(_grok_cwd()),
-        "-p", full_prompt, "--no-subagents", "--output-format", "plain",
-    ]
-
     stdout = stderr = ""
     try:
-        proc = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=timeout,
-            encoding="utf-8", errors="replace", cwd=str(_grok_cwd()),
-        )
-        stdout, stderr = proc.stdout or "", proc.stderr or ""
-    except subprocess.TimeoutExpired as exc:
-        stdout = (exc.stdout or b"").decode("utf-8", "replace") if isinstance(exc.stdout, bytes) else (exc.stdout or "")
-        # o grok pode ter gerado a imagem mesmo após o timeout do confirm — segue pra varredura
+        stdout, stderr = _run_grok(_build_imagine_prompt(prompt, started, force), timeout)
     except FileNotFoundError:
         return {"ok": False, "error": "executável 'grok' não encontrado no PATH"}
     except Exception as exc:  # noqa: BLE001
         return {"ok": False, "error": f"falha ao executar grok: {exc}"}
+
+    combined_output = f"{stdout}\n{stderr}"
+    skipped_previous = "Skipped (previously executed)" in combined_output
+    retried_after_skip = False
+    if skipped_previous and not force:
+        if reuse_existing and _usable_image(dest_resolved):
+            return {
+                "ok": True,
+                "reused": True,
+                "skipped_provider": True,
+                "saved_to": str(dest_resolved),
+                "bytes": dest_resolved.stat().st_size,
+                "exists": True,
+                "prompt": prompt,
+                "idempotency_key": idempotency_key,
+                "stdout_tail": (stdout or "")[-800:],
+                "stderr_tail": (stderr or "")[-800:],
+            }
+        try:
+            retry_started = time.time()
+            retry_stdout, retry_stderr = _run_grok(_build_imagine_prompt(prompt, retry_started, True), timeout)
+            stdout = f"{stdout}\n{retry_stdout}".strip()
+            stderr = f"{stderr}\n{retry_stderr}".strip()
+            retried_after_skip = True
+        except FileNotFoundError:
+            return {"ok": False, "error": "executável 'grok' não encontrado no PATH"}
+        except Exception as exc:  # noqa: BLE001
+            return {"ok": False, "error": f"falha ao reexecutar grok após skip: {exc}"}
 
     # poll pós-execução: a imagem pode levar um instante pra aparecer no disco
     image = None
@@ -199,6 +274,9 @@ def generate(
         return {
             "ok": False,
             "error": "nenhuma imagem nova detectada na sessão do grok",
+            "skipped_previous": skipped_previous,
+            "force": force,
+            "retried_after_skip": retried_after_skip,
             "stdout_tail": (stdout or "")[-800:],
             "stderr_tail": (stderr or "")[-800:],
         }
@@ -217,6 +295,10 @@ def generate(
         "exists": dest_resolved.exists(),
         "source_session_image": str(image),
         "prompt": prompt,
+        "force": force,
+        "reused": False,
+        "retried_after_skip": retried_after_skip,
+        "idempotency_key": idempotency_key,
     }
 
 

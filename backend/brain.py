@@ -4,7 +4,7 @@ Duas responsabilidades:
   1) Compor o system prompt a partir dos blocos de comportamento da persona
      (identidade, propósito, tom, regras, ferramentas, exemplos...).
   2) Despachar a chamada de LLM para o provider resolvido (glm / kimi /
-     anthropic / openrouter), igual ao Yume.
+     anthropic / openrouter / ninerouter), igual ao Yume.
 """
 from __future__ import annotations
 
@@ -17,6 +17,7 @@ from config import (
     ANTHROPIC_API_KEY, ANTHROPIC_BASE,
     GLM_API_KEY, GLM_BASE,
     KIMI_API_KEY, KIMI_BASE,
+    NINEROUTER_API_KEY, NINEROUTER_BASE, NINEROUTER_MODEL,
     OPENROUTER_API_KEY, OPENROUTER_BASE,
 )
 from db import PROMPT_FLOW
@@ -124,32 +125,52 @@ def build_system_prompt(persona: dict[str, Any]) -> str:
 
 def provider_for_model(model: str) -> tuple[str, str]:
     """Resolve (provider, model_name). Vazio se nenhuma key servir."""
-    m = model.lower()
+    raw_model = (model or "").strip() or NINEROUTER_MODEL
+    m = raw_model.lower()
+    if m in ("9router", "ninerouter"):
+        return ("ninerouter", NINEROUTER_MODEL) if NINEROUTER_BASE else ("", raw_model)
+    if m.startswith("9router/") or m.startswith("ninerouter/"):
+        name = raw_model.split("/", 1)[1] if "/" in raw_model else NINEROUTER_MODEL
+        return ("ninerouter", name) if NINEROUTER_BASE else ("", raw_model)
     if m.startswith("glm-") or m.startswith("glm/"):
-        name = model.split("/", 1)[1] if "/" in model else model
+        name = raw_model.split("/", 1)[1] if "/" in raw_model else raw_model
         if GLM_API_KEY:
             return ("glm", name)
         if OPENROUTER_API_KEY:
-            return ("openrouter", model)
-        return ("", model)
+            return ("openrouter", raw_model)
+        if NINEROUTER_BASE:
+            router_name = f"glm/{name}" if m.startswith("glm-") else raw_model
+            return ("ninerouter", router_name)
+        return ("", raw_model)
     if m.startswith("kimi-") or m.startswith("moonshot-") or m.startswith("kimi/") or m.startswith("moonshot/"):
-        name = model.split("/", 1)[1] if "/" in model else model
+        name = raw_model.split("/", 1)[1] if "/" in raw_model else raw_model
         if KIMI_API_KEY:
             return ("kimi", name)
         if OPENROUTER_API_KEY:
-            return ("openrouter", model)
-        return ("", model)
+            return ("openrouter", raw_model)
+        if NINEROUTER_BASE:
+            router_name = f"kimi/{name}" if m.startswith(("kimi-", "moonshot-")) else raw_model
+            return ("ninerouter", router_name)
+        return ("", raw_model)
     if m.startswith("anthropic/"):
         if OPENROUTER_API_KEY:
-            return ("openrouter", model)
+            return ("openrouter", raw_model)
         if ANTHROPIC_API_KEY:
-            return ("anthropic", model.split("/", 1)[1])
-        return ("", model)
+            return ("anthropic", raw_model.split("/", 1)[1])
+        return ("", raw_model)
+    if m.startswith(("cx/", "ocg/", "cc/", "sdk/", "xai/", "gemini/", "ollama/")):
+        if NINEROUTER_BASE:
+            return ("ninerouter", raw_model)
+        if OPENROUTER_API_KEY:
+            return ("openrouter", raw_model)
+        return ("", raw_model)
     if OPENROUTER_API_KEY:
-        return ("openrouter", model)
+        return ("openrouter", raw_model)
     if ANTHROPIC_API_KEY and "claude" in m:
-        return ("anthropic", model)
-    return ("", model)
+        return ("anthropic", raw_model)
+    if NINEROUTER_BASE:
+        return ("ninerouter", raw_model)
+    return ("", raw_model)
 
 
 def available_providers() -> dict[str, bool]:
@@ -158,6 +179,7 @@ def available_providers() -> dict[str, bool]:
         "kimi": bool(KIMI_API_KEY),
         "anthropic": bool(ANTHROPIC_API_KEY),
         "openrouter": bool(OPENROUTER_API_KEY),
+        "ninerouter": bool(NINEROUTER_BASE),
     }
 
 
@@ -219,6 +241,11 @@ async def dispatch_llm(
         return await _call_openai_compatible(
             KIMI_BASE, KIMI_API_KEY, "kimi", send_model, full, temperature, max_tokens,
             extra_headers={"User-Agent": os.environ.get("KIMI_USER_AGENT", "claude-code/1.0")},
+        )
+    if provider == "ninerouter":
+        return await _call_openai_compatible(
+            NINEROUTER_BASE, NINEROUTER_API_KEY, "ninerouter", send_model, full, temperature, max_tokens,
+            extra_headers={"User-Agent": os.environ.get("NINEROUTER_USER_AGENT", "tars-companion/1.0")},
         )
     return await _call_openai_compatible(
         OPENROUTER_BASE, OPENROUTER_API_KEY, "openrouter", send_model, full, temperature, max_tokens,

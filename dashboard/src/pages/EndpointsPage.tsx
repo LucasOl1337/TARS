@@ -774,9 +774,13 @@ export default function EndpointsPage() {
 
   return (
     <div className="space-y-8 pb-10">
-      <motion.div variants={fadeUp} initial="hidden" animate="show">
-        <h1 className="void-title text-4xl">Endpoints</h1>
-        <p className="text-sm mt-2" style={{ color: theme.textSoft }}>
+      <motion.div variants={fadeUp} initial="hidden" animate="show" className="mission-shell rounded-lg p-5 sm:p-6">
+        <div className="panel-kicker">
+          <Cable className="h-3.5 w-3.5" />
+          bridge topology
+        </div>
+        <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl" style={{ color: theme.text }}>Endpoints</h1>
+        <p className="mt-2 max-w-3xl text-sm leading-relaxed" style={{ color: theme.textSoft }}>
           O que cada módulo pode <span style={{ color: theme.sharingan }}>oferecer</span> e
           o que pode <span style={{ color: theme.sharingan }}>receber</span> pela dimensão.
         </p>

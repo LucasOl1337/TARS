@@ -17,9 +17,11 @@ from __future__ import annotations
 import asyncio
 import json
 import math
+import os
 import subprocess
 import time
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -313,6 +315,33 @@ def _bi_fs_write(payload: dict[str, Any]) -> dict[str, Any]:
     return _ok(path=str(resolved), bytes=len(str(content)), mode=mode)
 
 
+def _bi_desktop_write(payload: dict[str, Any]) -> dict[str, Any]:
+    """Escreve texto sob o Desktop do usuário, sem permitir escapar dessa raiz."""
+    raw_name = str(payload.get("filename") or payload.get("path") or "").strip()
+    if not raw_name:
+        return _err("informe 'filename' ou 'path'")
+    content = payload.get("content")
+    if content is None:
+        return _err("informe 'content' (texto a gravar)")
+
+    desktop = Path(os.environ.get("USERPROFILE") or Path.home()).resolve() / "Desktop"
+    candidate = Path(raw_name)
+    target = (candidate if candidate.is_absolute() else desktop / candidate).resolve()
+    try:
+        target.relative_to(desktop)
+    except ValueError:
+        return _err("caminho fora do Desktop", code="BLOCKED")
+
+    mode = "a" if str(payload.get("mode", "w")).lower() in ("a", "append") else "w"
+    try:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with open(target, mode, encoding="utf-8") as fh:
+            fh.write(str(content))
+    except Exception as exc:  # noqa: BLE001
+        return _err(f"erro ao gravar no Desktop: {exc}", code="IO_ERROR")
+    return _ok(path=str(target), bytes=len(str(content)), mode=mode)
+
+
 def _bi_fs_list(payload: dict[str, Any]) -> dict[str, Any]:
     path = str(payload.get("path") or ".").strip() or "."
     resolved = governance.resolve_in_sandbox(path)
@@ -333,6 +362,173 @@ def _bi_fs_list(payload: dict[str, Any]) -> dict[str, Any]:
     except Exception as exc:  # noqa: BLE001
         return _err(f"erro ao listar: {exc}", code="IO_ERROR")
     return _ok(path=str(resolved), type="dir", count=len(entries), entries=entries[:500])
+
+
+def _projects_root() -> Path:
+    return Path(__file__).resolve().parent.parent.parent
+
+
+def _resolve_project_path(name_or_path: str | None = None) -> Path | None:
+    root = _projects_root().resolve()
+    if not name_or_path:
+        return root
+    raw = Path(str(name_or_path).strip())
+    candidate = (raw if raw.is_absolute() else root / raw).resolve()
+    try:
+        candidate.relative_to(root)
+    except ValueError:
+        return None
+    return candidate
+
+
+def _project_markers(path: Path) -> list[str]:
+    markers = []
+    for marker in (
+        "package.json", "pnpm-lock.yaml", "package-lock.json", "vite.config.ts",
+        "next.config.js", "pyproject.toml", "requirements.txt", "server.py",
+        "README.md", ".git",
+    ):
+        if (path / marker).exists():
+            markers.append(marker)
+    return markers
+
+
+def _bi_project_scan(payload: dict[str, Any]) -> dict[str, Any]:
+    """Inspeciona C:\Projetos de forma rasa e segura."""
+    target = _resolve_project_path(payload.get("project") or payload.get("path"))
+    if target is None:
+        return _err("projeto fora de C:\\Projetos", code="BLOCKED")
+    if not target.exists():
+        return _err(f"projeto não encontrado: {payload.get('project') or payload.get('path')}", code="NOT_FOUND")
+    if target.is_file():
+        return _err("project_scan espera diretório", code="VALIDATION")
+
+    limit = min(int(payload.get("limit", 80) or 80), 300)
+    if target == _projects_root().resolve():
+        projects = []
+        try:
+            children = [child for child in target.iterdir() if child.is_dir() and not child.name.startswith(".")]
+        except OSError as exc:
+            return _err(f"erro ao listar projetos: {exc}", code="IO_ERROR")
+        for child in sorted(children, key=lambda p: p.name.lower())[:limit]:
+            projects.append({
+                "name": child.name,
+                "path": str(child),
+                "markers": _project_markers(child),
+            })
+        return _ok(root=str(target), count=len(projects), projects=projects)
+
+    entries = []
+    try:
+        for child in sorted(target.iterdir(), key=lambda p: p.name.lower())[:limit]:
+            entries.append({
+                "name": child.name,
+                "type": "dir" if child.is_dir() else "file",
+                "size": child.stat().st_size if child.is_file() else None,
+            })
+    except OSError as exc:
+        return _err(f"erro ao listar projeto: {exc}", code="IO_ERROR")
+    return _ok(project=target.name, path=str(target), markers=_project_markers(target), count=len(entries), entries=entries)
+
+
+def _desktop_path(name_or_path: str) -> Path | None:
+    desktop = Path(os.environ.get("USERPROFILE") or Path.home()).resolve() / "Desktop"
+    raw = Path(str(name_or_path or "").strip())
+    if not str(raw):
+        return None
+    candidate = (raw if raw.is_absolute() else desktop / raw).resolve()
+    try:
+        candidate.relative_to(desktop)
+    except ValueError:
+        return None
+    return candidate
+
+
+def _check_file(path: Path, check: dict[str, Any]) -> tuple[bool, dict[str, Any]]:
+    detail: dict[str, Any] = {"path": str(path), "exists": path.exists()}
+    if not path.exists():
+        return False, detail
+    if path.is_file():
+        size = path.stat().st_size
+        detail["size"] = size
+        min_bytes = check.get("min_bytes")
+        if min_bytes is not None and size < int(min_bytes):
+            detail["error"] = f"size {size} < min_bytes {min_bytes}"
+            return False, detail
+        contains = check.get("contains")
+        if contains is not None:
+            text = path.read_text(encoding="utf-8", errors="replace")
+            found = str(contains) in text
+            detail["contains"] = str(contains)
+            detail["contains_ok"] = found
+            if not found:
+                return False, detail
+    return True, detail
+
+
+def _bi_assert_check(payload: dict[str, Any]) -> dict[str, Any]:
+    """Verificador determinístico para fluxos do Harness."""
+    checks = payload.get("checks")
+    if not isinstance(checks, list) or not checks:
+        return _err("informe checks como lista não vazia")
+    results = []
+    all_ok = True
+    for index, raw in enumerate(checks, start=1):
+        check = raw if isinstance(raw, dict) else {}
+        kind = str(check.get("kind") or "").strip()
+        ok = False
+        detail: dict[str, Any] = {"index": index, "kind": kind}
+        try:
+            if kind == "workspace_file":
+                resolved = governance.resolve_in_sandbox(str(check.get("path") or ""))
+                if resolved is None:
+                    detail["error"] = "caminho fora do workspace"
+                else:
+                    ok, file_detail = _check_file(resolved, check)
+                    detail.update(file_detail)
+            elif kind == "desktop_file":
+                resolved = _desktop_path(str(check.get("path") or check.get("filename") or ""))
+                if resolved is None:
+                    detail["error"] = "caminho fora do Desktop"
+                else:
+                    ok, file_detail = _check_file(resolved, check)
+                    detail.update(file_detail)
+            elif kind == "project_exists":
+                target = _resolve_project_path(str(check.get("project") or check.get("path") or ""))
+                ok = bool(target and target.is_dir())
+                detail.update({"path": str(target) if target else None, "exists": ok})
+            elif kind == "http_ok":
+                url = str(check.get("url") or "")
+                if not url.lower().startswith(("http://", "https://")):
+                    detail["error"] = "url inválida"
+                else:
+                    with httpx.Client(timeout=float(check.get("timeout", 10) or 10), follow_redirects=True) as client:
+                        resp = client.get(url)
+                    text = resp.text
+                    status_ok = int(check.get("min_status", 200) or 200) <= resp.status_code <= int(check.get("max_status", 299) or 299)
+                    contains = check.get("contains")
+                    contains_ok = True if contains is None else str(contains) in text
+                    ok = status_ok and contains_ok
+                    detail.update({"status": resp.status_code, "status_ok": status_ok, "contains_ok": contains_ok})
+            elif kind == "memory_contains":
+                recalled = memory_mod.recall(
+                    query=str(check.get("query") or ""),
+                    kind=str(check.get("memory_kind") or check.get("memoryKind") or ""),
+                    limit=int(check.get("limit", 8) or 8),
+                )
+                items = recalled.get("items") if isinstance(recalled, dict) else []
+                contains = str(check.get("contains") or check.get("query") or "")
+                ok = any(contains in str(item.get("content") or "") for item in items if isinstance(item, dict))
+                detail.update({"count": len(items) if isinstance(items, list) else 0, "contains": contains})
+            else:
+                detail["error"] = f"kind desconhecido: {kind}"
+        except Exception as exc:  # noqa: BLE001
+            detail["error"] = str(exc)
+            ok = False
+        detail["ok"] = ok
+        results.append(detail)
+        all_ok = all_ok and ok
+    return _ok(count=len(results), passed=sum(1 for item in results if item.get("ok")), results=results) if all_ok else _err("uma ou mais verificações falharam", code="ASSERT_FAILED") | {"results": results}
 
 
 def _bi_web_fetch(payload: dict[str, Any]) -> dict[str, Any]:
@@ -486,6 +682,9 @@ def _bi_grok_imagine(payload: dict[str, Any]) -> dict[str, Any]:
         dest=payload.get("dest"),
         output_path=payload.get("output_path"),
         timeout=min(int(payload.get("timeout", 200) or 200), 480),
+        force=bool(payload.get("force", False)),
+        reuse_existing=bool(payload.get("reuse_existing", False) or payload.get("skip_if_exists", False)),
+        idempotency_key=payload.get("idempotency_key"),
     )
 
 
@@ -498,7 +697,10 @@ BUILTIN_HANDLERS = {
     "shell_exec": _bi_shell_exec,
     "fs_read": _bi_fs_read,
     "fs_write": _bi_fs_write,
+    "desktop_write": _bi_desktop_write,
     "fs_list": _bi_fs_list,
+    "project_scan": _bi_project_scan,
+    "assert_check": _bi_assert_check,
     "web_fetch": _bi_web_fetch,
     "web_search": _bi_web_search,
     "memory_save": _bi_memory_save,

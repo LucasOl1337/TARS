@@ -1,0 +1,1002 @@
+{
+  "flows": [
+    {
+      "id": "advanced-runtime-gauntlet",
+      "name": "Advanced Runtime Gauntlet",
+      "description": "Stress de runtime: project scan, workspace IO, shell, LLM subcall, memória, log e health HTTP com asserts.",
+      "stages": [
+        {
+          "id": "rt-scan-root",
+          "title": "Inspecionar raiz de projetos",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "project_scan",
+          "errorPolicy": "stop",
+          "instruction": "Liste projetos locais.",
+          "tool_input": {
+            "limit": 35
+          }
+        },
+        {
+          "id": "rt-write-manifest",
+          "title": "Gravar manifesto",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "fs_write",
+          "errorPolicy": "stop",
+          "instruction": "Grave manifesto JSON do teste.",
+          "tool_input": {
+            "path": "advanced/runtime/manifest.json",
+            "content": "{\"flow\":\"advanced-runtime-gauntlet\",\"status\":\"started\",\"checks\":[\"io\",\"shell\",\"llm\",\"memory\",\"http\"]}",
+            "mode": "w"
+          }
+        },
+        {
+          "id": "rt-read-manifest",
+          "title": "Ler manifesto",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "fs_read",
+          "errorPolicy": "stop",
+          "instruction": "Leia manifesto.",
+          "tool_input": {
+            "path": "advanced/runtime/manifest.json"
+          }
+        },
+        {
+          "id": "rt-shell-derived",
+          "title": "Gerar arquivo via shell",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "shell_exec",
+          "errorPolicy": "stop",
+          "instruction": "Use shell permitido para gerar arquivo derivado.",
+          "tool_input": {
+            "command": "python -c \"from pathlib import Path; p=Path('advanced/runtime/derived.txt'); p.parent.mkdir(parents=True, exist_ok=True); p.write_text('derived-ok', encoding='utf-8'); print('derived-ok')\"",
+            "timeout": 30
+          }
+        },
+        {
+          "id": "rt-list",
+          "title": "Listar artefatos",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "fs_list",
+          "errorPolicy": "stop",
+          "instruction": "Liste pasta do teste.",
+          "tool_input": {
+            "path": "advanced/runtime"
+          }
+        },
+        {
+          "id": "rt-assert-files",
+          "title": "Verificar arquivos",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "assert_check",
+          "errorPolicy": "stop",
+          "instruction": "Valide manifesto e derivado.",
+          "tool_input": {
+            "checks": [
+              {
+                "kind": "workspace_file",
+                "path": "advanced/runtime/manifest.json",
+                "contains": "advanced-runtime-gauntlet",
+                "min_bytes": 20
+              },
+              {
+                "kind": "workspace_file",
+                "path": "advanced/runtime/derived.txt",
+                "contains": "derived-ok",
+                "min_bytes": 5
+              }
+            ]
+          }
+        },
+        {
+          "id": "rt-llm-json",
+          "title": "Subchamada LLM JSON",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "llm_subcall",
+          "errorPolicy": "stop",
+          "instruction": "Valide subchamada LLM com saída JSON.",
+          "tool_input": {
+            "prompt": "Responda exatamente: {\"runtime_gauntlet_llm\":true,\"risk\":\"low\"}",
+            "temperature": 0,
+            "max_tokens": 80
+          }
+        },
+        {
+          "id": "rt-memory-save",
+          "title": "Salvar memória",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "memory_save",
+          "errorPolicy": "stop",
+          "instruction": "Persistir fato do fluxo.",
+          "tool_input": {
+            "content": "advanced-runtime-gauntlet validou io shell llm memory http",
+            "kind": "semantic",
+            "category": "harness-advanced",
+            "tags": [
+              "advanced",
+              "runtime"
+            ],
+            "importance": 7
+          }
+        },
+        {
+          "id": "rt-memory-recall",
+          "title": "Recuperar memória",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "memory_recall",
+          "errorPolicy": "stop",
+          "instruction": "Recuperar fato salvo.",
+          "tool_input": {
+            "query": "advanced-runtime-gauntlet io shell",
+            "kind": "semantic",
+            "limit": 5
+          }
+        },
+        {
+          "id": "rt-assert-memory",
+          "title": "Verificar memória",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "assert_check",
+          "errorPolicy": "stop",
+          "instruction": "Valide memória.",
+          "tool_input": {
+            "checks": [
+              {
+                "kind": "memory_contains",
+                "query": "advanced-runtime-gauntlet io shell",
+                "memory_kind": "semantic",
+                "contains": "advanced-runtime-gauntlet",
+                "limit": 5
+              }
+            ]
+          }
+        },
+        {
+          "id": "rt-health",
+          "title": "Buscar health HTTP",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "web_fetch",
+          "errorPolicy": "stop",
+          "instruction": "Buscar health do TARS.",
+          "tool_input": {
+            "url": "http://127.0.0.1:62026/api/tars/health"
+          }
+        },
+        {
+          "id": "rt-assert-health",
+          "title": "Verificar health HTTP",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "assert_check",
+          "errorPolicy": "stop",
+          "instruction": "Health deve responder ok.",
+          "tool_input": {
+            "checks": [
+              {
+                "kind": "http_ok",
+                "url": "http://127.0.0.1:62026/api/tars/health",
+                "contains": "\"ok\":true",
+                "timeout": 10
+              }
+            ]
+          }
+        },
+        {
+          "id": "rt-log",
+          "title": "Registrar log",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "mission_log",
+          "errorPolicy": "stop",
+          "instruction": "Registrar conclusão.",
+          "tool_input": {
+            "entry": "advanced-runtime-gauntlet concluído",
+            "category": "harness-advanced"
+          }
+        }
+      ],
+      "source": "custom",
+      "updated_at": 1780673885883
+    },
+    {
+      "id": "advanced-recovery-chaos",
+      "name": "Advanced Recovery Chaos",
+      "description": "Stress de políticas de erro: auto-repair, continue, asserts, decisão e inspeção de projeto.",
+      "stages": [
+        {
+          "id": "chaos-wrong-tool",
+          "title": "Auto-repair de ferramenta errada",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "grok_imagine",
+          "errorPolicy": "auto_repair",
+          "instruction": "Salve um arquivo TXT na área de trabalho chamado tars-chaos-repair.txt contendo exatamente: chaos repair ok"
+        },
+        {
+          "id": "chaos-assert-desktop",
+          "title": "Validar arquivo recuperado",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "assert_check",
+          "errorPolicy": "stop",
+          "instruction": "Verificar Desktop.",
+          "tool_input": {
+            "checks": [
+              {
+                "kind": "desktop_file",
+                "filename": "tars-chaos-repair.txt",
+                "contains": "chaos repair ok",
+                "min_bytes": 5
+              }
+            ]
+          }
+        },
+        {
+          "id": "chaos-missing-read",
+          "title": "Falha ignorável",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "fs_read",
+          "errorPolicy": "continue",
+          "instruction": "Tente ler arquivo inexistente e continue.",
+          "tool_input": {
+            "path": "advanced/chaos/missing-before-repair.txt"
+          }
+        },
+        {
+          "id": "chaos-create-after",
+          "title": "Criar arquivo após falha",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "fs_write",
+          "errorPolicy": "stop",
+          "instruction": "Crie arquivo que contorna a falha anterior.",
+          "tool_input": {
+            "path": "advanced/chaos/missing-before-repair.txt",
+            "content": "created-after-continue",
+            "mode": "w"
+          }
+        },
+        {
+          "id": "chaos-assert-after",
+          "title": "Validar contorno",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "assert_check",
+          "errorPolicy": "stop",
+          "instruction": "Validar arquivo criado.",
+          "tool_input": {
+            "checks": [
+              {
+                "kind": "workspace_file",
+                "path": "advanced/chaos/missing-before-repair.txt",
+                "contains": "created-after-continue",
+                "min_bytes": 10
+              }
+            ]
+          }
+        },
+        {
+          "id": "chaos-branch",
+          "title": "Decidir projeto sob caos",
+          "kind": "branch",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "",
+          "errorPolicy": "stop",
+          "instruction": "Escolha o projeto local mais adequado para vídeos e YouTube, mesmo após uma etapa com erro recuperado."
+        },
+        {
+          "id": "chaos-scan-money",
+          "title": "Inspecionar MoneyPrinterTurbo",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "project_scan",
+          "errorPolicy": "stop",
+          "instruction": "Inspecione projeto escolhido provável.",
+          "tool_input": {
+            "project": "MoneyPrinterTurbo",
+            "limit": 60
+          }
+        },
+        {
+          "id": "chaos-assert-project",
+          "title": "Validar projeto existe",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "assert_check",
+          "errorPolicy": "stop",
+          "instruction": "Validar projeto local.",
+          "tool_input": {
+            "checks": [
+              {
+                "kind": "project_exists",
+                "project": "MoneyPrinterTurbo"
+              }
+            ]
+          }
+        },
+        {
+          "id": "chaos-memory",
+          "title": "Salvar memória do caos",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "memory_save",
+          "errorPolicy": "stop",
+          "instruction": "Salvar resultado.",
+          "tool_input": {
+            "content": "advanced-recovery-chaos validou auto_repair continue branch project_scan",
+            "kind": "semantic",
+            "category": "harness-advanced",
+            "tags": [
+              "advanced",
+              "recovery"
+            ],
+            "importance": 8
+          }
+        },
+        {
+          "id": "chaos-log",
+          "title": "Log do caos",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "mission_log",
+          "errorPolicy": "stop",
+          "instruction": "Registrar fluxo.",
+          "tool_input": {
+            "entry": "advanced-recovery-chaos concluído",
+            "category": "harness-advanced"
+          }
+        }
+      ],
+      "source": "custom",
+      "updated_at": 1780673885897
+    },
+    {
+      "id": "advanced-space-memory-verification",
+      "name": "Advanced Space Memory Verification",
+      "description": "Stress de domínio espacial, persistência, relatórios e verificadores determinísticos.",
+      "stages": [
+        {
+          "id": "space-earth",
+          "title": "Consultar Terra",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "astro_lookup",
+          "errorPolicy": "stop",
+          "instruction": "Dados Terra.",
+          "tool_input": {
+            "body": "earth"
+          }
+        },
+        {
+          "id": "space-mars",
+          "title": "Consultar Marte",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "astro_lookup",
+          "errorPolicy": "stop",
+          "instruction": "Dados Marte.",
+          "tool_input": {
+            "body": "mars"
+          }
+        },
+        {
+          "id": "space-jupiter",
+          "title": "Consultar Júpiter",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "astro_lookup",
+          "errorPolicy": "stop",
+          "instruction": "Dados Júpiter.",
+          "tool_input": {
+            "body": "jupiter"
+          }
+        },
+        {
+          "id": "space-period",
+          "title": "Período LEO",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "orbital_calc",
+          "errorPolicy": "stop",
+          "instruction": "Calcular período orbital.",
+          "tool_input": {
+            "op": "period",
+            "body": "earth",
+            "r_km": 6771
+          }
+        },
+        {
+          "id": "space-hohmann",
+          "title": "Transferência Hohmann",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "orbital_calc",
+          "errorPolicy": "stop",
+          "instruction": "Calcular transferência.",
+          "tool_input": {
+            "op": "hohmann",
+            "body": "earth",
+            "r1_km": 6678,
+            "r2_km": 42164
+          }
+        },
+        {
+          "id": "space-report",
+          "title": "Gravar relatório",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "fs_write",
+          "errorPolicy": "stop",
+          "instruction": "Criar relatório consolidado.",
+          "tool_input": {
+            "path": "advanced/space/report.md",
+            "content": "# Advanced Space Report\nEarth/Mars/Jupiter lookup ok.\nLEO period and Hohmann transfer computed.\n",
+            "mode": "w"
+          }
+        },
+        {
+          "id": "space-assert-report",
+          "title": "Validar relatório",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "assert_check",
+          "errorPolicy": "stop",
+          "instruction": "Verificar relatório.",
+          "tool_input": {
+            "checks": [
+              {
+                "kind": "workspace_file",
+                "path": "advanced/space/report.md",
+                "contains": "Hohmann",
+                "min_bytes": 40
+              }
+            ]
+          }
+        },
+        {
+          "id": "space-memory-save",
+          "title": "Salvar memória espacial",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "memory_save",
+          "errorPolicy": "stop",
+          "instruction": "Salvar fato espacial.",
+          "tool_input": {
+            "content": "advanced-space-memory-verification confirmou lookup de terra marte jupiter e hohmann",
+            "kind": "semantic",
+            "category": "harness-advanced",
+            "tags": [
+              "advanced",
+              "space",
+              "memory"
+            ],
+            "importance": 8
+          }
+        },
+        {
+          "id": "space-memory-recall",
+          "title": "Recuperar memória espacial",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "memory_recall",
+          "errorPolicy": "stop",
+          "instruction": "Recuperar fato.",
+          "tool_input": {
+            "query": "advanced-space-memory-verification hohmann",
+            "kind": "semantic",
+            "limit": 5
+          }
+        },
+        {
+          "id": "space-assert-memory",
+          "title": "Validar memória espacial",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "assert_check",
+          "errorPolicy": "stop",
+          "instruction": "Verificar memória.",
+          "tool_input": {
+            "checks": [
+              {
+                "kind": "memory_contains",
+                "query": "advanced-space-memory-verification hohmann",
+                "memory_kind": "semantic",
+                "contains": "hohmann",
+                "limit": 5
+              }
+            ]
+          }
+        },
+        {
+          "id": "space-llm",
+          "title": "LLM analítico",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "llm_subcall",
+          "errorPolicy": "stop",
+          "instruction": "Gerar síntese determinística.",
+          "tool_input": {
+            "prompt": "Responda exatamente: {\"space_flow_ok\":true,\"bodies\":3,\"calculations\":2}",
+            "temperature": 0,
+            "max_tokens": 100
+          }
+        },
+        {
+          "id": "space-log",
+          "title": "Log espacial",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "mission_log",
+          "errorPolicy": "stop",
+          "instruction": "Registrar fluxo espacial.",
+          "tool_input": {
+            "entry": "advanced-space-memory-verification concluído",
+            "category": "harness-advanced"
+          }
+        }
+      ],
+      "source": "custom",
+      "updated_at": 1780673885908
+    },
+    {
+      "id": "advanced-project-intelligence",
+      "name": "Advanced Project Intelligence",
+      "description": "Stress de descoberta de projetos, decisão estruturada, inspeção comparativa, memória e relatório.",
+      "stages": [
+        {
+          "id": "proj-scan-root",
+          "title": "Listar projetos",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "project_scan",
+          "errorPolicy": "stop",
+          "instruction": "Listar raiz C:\\Projetos.",
+          "tool_input": {
+            "limit": 80
+          }
+        },
+        {
+          "id": "proj-branch",
+          "title": "Escolher projeto",
+          "kind": "branch",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "",
+          "errorPolicy": "stop",
+          "instruction": "Escolha o melhor projeto local para gerar vídeos e publicar no YouTube."
+        },
+        {
+          "id": "proj-scan-money",
+          "title": "Inspecionar MoneyPrinterTurbo",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "project_scan",
+          "errorPolicy": "stop",
+          "instruction": "Inspecione MoneyPrinterTurbo.",
+          "tool_input": {
+            "project": "MoneyPrinterTurbo",
+            "limit": 80
+          }
+        },
+        {
+          "id": "proj-scan-video",
+          "title": "Inspecionar VideoGen",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "project_scan",
+          "errorPolicy": "stop",
+          "instruction": "Inspecione VideoGen.",
+          "tool_input": {
+            "project": "VideoGen",
+            "limit": 80
+          }
+        },
+        {
+          "id": "proj-assert",
+          "title": "Validar projetos candidatos",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "assert_check",
+          "errorPolicy": "stop",
+          "instruction": "Projetos candidatos devem existir.",
+          "tool_input": {
+            "checks": [
+              {
+                "kind": "project_exists",
+                "project": "MoneyPrinterTurbo"
+              },
+              {
+                "kind": "project_exists",
+                "project": "VideoGen"
+              }
+            ]
+          }
+        },
+        {
+          "id": "proj-write-decision",
+          "title": "Gravar decisão",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "fs_write",
+          "errorPolicy": "stop",
+          "instruction": "Grave decisão operacional.",
+          "tool_input": {
+            "path": "advanced/project/decision.md",
+            "content": "# Project decision\nPrimary: MoneyPrinterTurbo\nAlternative: VideoGen\nReason: YouTube signal + video generation context.\n",
+            "mode": "w"
+          }
+        },
+        {
+          "id": "proj-read-decision",
+          "title": "Ler decisão",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "fs_read",
+          "errorPolicy": "stop",
+          "instruction": "Leia decisão.",
+          "tool_input": {
+            "path": "advanced/project/decision.md"
+          }
+        },
+        {
+          "id": "proj-assert-file",
+          "title": "Validar decisão escrita",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "assert_check",
+          "errorPolicy": "stop",
+          "instruction": "Verificar arquivo de decisão.",
+          "tool_input": {
+            "checks": [
+              {
+                "kind": "workspace_file",
+                "path": "advanced/project/decision.md",
+                "contains": "MoneyPrinterTurbo",
+                "min_bytes": 60
+              }
+            ]
+          }
+        },
+        {
+          "id": "proj-llm",
+          "title": "Comparar candidatos via LLM",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "llm_subcall",
+          "errorPolicy": "stop",
+          "instruction": "Subchamada de comparação.",
+          "tool_input": {
+            "prompt": "Responda exatamente: {\"primary\":\"MoneyPrinterTurbo\",\"alternative\":\"VideoGen\",\"project_intelligence_ok\":true}",
+            "temperature": 0,
+            "max_tokens": 120
+          }
+        },
+        {
+          "id": "proj-memory",
+          "title": "Salvar memória de projeto",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "memory_save",
+          "errorPolicy": "stop",
+          "instruction": "Salvar decisão.",
+          "tool_input": {
+            "content": "advanced-project-intelligence selecionou MoneyPrinterTurbo com VideoGen como alternativa",
+            "kind": "semantic",
+            "category": "harness-advanced",
+            "tags": [
+              "advanced",
+              "project"
+            ],
+            "importance": 8
+          }
+        },
+        {
+          "id": "proj-assert-memory",
+          "title": "Validar memória de projeto",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "assert_check",
+          "errorPolicy": "stop",
+          "instruction": "Verificar memória.",
+          "tool_input": {
+            "checks": [
+              {
+                "kind": "memory_contains",
+                "query": "advanced-project-intelligence MoneyPrinterTurbo",
+                "memory_kind": "semantic",
+                "contains": "MoneyPrinterTurbo",
+                "limit": 5
+              }
+            ]
+          }
+        },
+        {
+          "id": "proj-log",
+          "title": "Log de projeto",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "mission_log",
+          "errorPolicy": "stop",
+          "instruction": "Registrar fluxo.",
+          "tool_input": {
+            "entry": "advanced-project-intelligence concluído",
+            "category": "harness-advanced"
+          }
+        }
+      ],
+      "source": "custom",
+      "updated_at": 1780673885920
+    },
+    {
+      "id": "advanced-web-visual-idempotency",
+      "name": "Advanced Web Visual Idempotency",
+      "description": "Stress de HTTP, catálogo, Desktop, reuso do Grok, asserts, memória e relatório cruzado.",
+      "stages": [
+        {
+          "id": "wv-health",
+          "title": "Health HTTP",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "web_fetch",
+          "errorPolicy": "stop",
+          "instruction": "Buscar health.",
+          "tool_input": {
+            "url": "http://127.0.0.1:62026/api/tars/health"
+          }
+        },
+        {
+          "id": "wv-flows",
+          "title": "Listar fluxos HTTP",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "web_fetch",
+          "errorPolicy": "stop",
+          "instruction": "Buscar catálogo de fluxos.",
+          "tool_input": {
+            "url": "http://127.0.0.1:62026/api/tars/harness/flows"
+          }
+        },
+        {
+          "id": "wv-assert-http",
+          "title": "Validar endpoints HTTP",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "assert_check",
+          "errorPolicy": "stop",
+          "instruction": "Health e flows devem responder.",
+          "tool_input": {
+            "checks": [
+              {
+                "kind": "http_ok",
+                "url": "http://127.0.0.1:62026/api/tars/health",
+                "contains": "\"ok\":true",
+                "timeout": 10
+              },
+              {
+                "kind": "http_ok",
+                "url": "http://127.0.0.1:62026/api/tars/harness/flows",
+                "contains": "advanced-web-visual-idempotency",
+                "timeout": 10
+              }
+            ]
+          }
+        },
+        {
+          "id": "wv-precreate-image",
+          "title": "Criar artefato visual fake",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "desktop_write",
+          "errorPolicy": "stop",
+          "instruction": "Criar arquivo grande para reuso visual.",
+          "tool_input": {
+            "filename": "tars-advanced-reuse.png",
+            "content": "ADVANCED-VISUAL-REUSE\nzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz",
+            "mode": "w"
+          }
+        },
+        {
+          "id": "wv-assert-preimage",
+          "title": "Verificar artefato visual",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "assert_check",
+          "errorPolicy": "stop",
+          "instruction": "Arquivo visual deve existir.",
+          "tool_input": {
+            "checks": [
+              {
+                "kind": "desktop_file",
+                "filename": "tars-advanced-reuse.png",
+                "min_bytes": 20000
+              }
+            ]
+          }
+        },
+        {
+          "id": "wv-grok-reuse",
+          "title": "Reusar Grok idempotente",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "grok_imagine",
+          "errorPolicy": "stop",
+          "instruction": "Reutilizar arquivo existente sem geração.",
+          "tool_input": {
+            "prompt": "advanced diagnostic visual badge for TARS",
+            "filename": "tars-advanced-reuse.png",
+            "reuse_existing": true
+          }
+        },
+        {
+          "id": "wv-assert-reuse",
+          "title": "Validar reuso Grok",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "assert_check",
+          "errorPolicy": "stop",
+          "instruction": "Arquivo visual ainda deve existir.",
+          "tool_input": {
+            "checks": [
+              {
+                "kind": "desktop_file",
+                "filename": "tars-advanced-reuse.png",
+                "min_bytes": 20000
+              }
+            ]
+          }
+        },
+        {
+          "id": "wv-desktop-report",
+          "title": "Relatório no Desktop",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "desktop_write",
+          "errorPolicy": "stop",
+          "instruction": "Gravar relatório final no Desktop.",
+          "tool_input": {
+            "filename": "tars-advanced-web-visual-report.txt",
+            "content": "advanced web visual idempotency ok",
+            "mode": "w"
+          }
+        },
+        {
+          "id": "wv-assert-report",
+          "title": "Validar relatório Desktop",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "assert_check",
+          "errorPolicy": "stop",
+          "instruction": "Relatório deve conter OK.",
+          "tool_input": {
+            "checks": [
+              {
+                "kind": "desktop_file",
+                "filename": "tars-advanced-web-visual-report.txt",
+                "contains": "idempotency ok",
+                "min_bytes": 10
+              }
+            ]
+          }
+        },
+        {
+          "id": "wv-workspace-report",
+          "title": "Relatório workspace",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "fs_write",
+          "errorPolicy": "stop",
+          "instruction": "Gravar espelho no workspace.",
+          "tool_input": {
+            "path": "advanced/web-visual/report.txt",
+            "content": "advanced web visual idempotency ok",
+            "mode": "w"
+          }
+        },
+        {
+          "id": "wv-memory",
+          "title": "Salvar memória web visual",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "memory_save",
+          "errorPolicy": "stop",
+          "instruction": "Salvar resultado.",
+          "tool_input": {
+            "content": "advanced-web-visual-idempotency validou http desktop grok reuse assert",
+            "kind": "semantic",
+            "category": "harness-advanced",
+            "tags": [
+              "advanced",
+              "web",
+              "visual"
+            ],
+            "importance": 8
+          }
+        },
+        {
+          "id": "wv-log",
+          "title": "Log web visual",
+          "kind": "tool",
+          "model": "glm-5.1",
+          "persona": "tars",
+          "tool": "mission_log",
+          "errorPolicy": "stop",
+          "instruction": "Registrar fluxo.",
+          "tool_input": {
+            "entry": "advanced-web-visual-idempotency concluído",
+            "category": "harness-advanced"
+          }
+        }
+      ],
+      "source": "custom",
+      "updated_at": 1780673885931
+    }
+  ]
+}

@@ -126,6 +126,26 @@ CREATE TABLE IF NOT EXISTS goal_steps (
 
 CREATE INDEX IF NOT EXISTS idx_goal_steps_goal ON goal_steps(goal_id, idx);
 
+-- Event store imutável do runtime. É a trilha canônica para auditoria,
+-- replay leve e diagnóstico de loops. goal_steps continua sendo a visão
+-- detalhada por objetivo; events é a linha do tempo transversal do sistema.
+CREATE TABLE IF NOT EXISTS events (
+    id TEXT PRIMARY KEY,
+    type TEXT NOT NULL,
+    ts INTEGER NOT NULL,
+    timestamp TEXT NOT NULL,
+    heartbeat_id TEXT,
+    goal_id TEXT,
+    trace_id TEXT,
+    source TEXT NOT NULL DEFAULT 'runtime',
+    payload_json TEXT NOT NULL DEFAULT '{}'
+);
+
+CREATE INDEX IF NOT EXISTS idx_events_ts ON events(ts DESC);
+CREATE INDEX IF NOT EXISTS idx_events_type ON events(type);
+CREATE INDEX IF NOT EXISTS idx_events_goal ON events(goal_id, ts DESC);
+CREATE INDEX IF NOT EXISTS idx_events_trace ON events(trace_id, ts DESC);
+
 -- Memória durável do agente: episódica (o que aconteceu) e semântica (fatos /
 -- aprendizados). Busca simples por keyword + recência + importância.
 CREATE TABLE IF NOT EXISTS memories (

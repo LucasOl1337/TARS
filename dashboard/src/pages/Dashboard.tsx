@@ -1,177 +1,281 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Cable, Boxes, Activity, Sparkles } from 'lucide-react';
+import { Activity, Boxes, Cable, CirclePause, HeartPulse, Target } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
-import KamuiVoid from '@/components/KamuiVoid';
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 12 },
-  show:   { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.4, 0, 0.2, 1] as const } },
+  hidden: { opacity: 0, y: 8 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.22, ease: [0.4, 0, 0.2, 1] as const } },
 };
 
-const stagger = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.08 } },
+type Goal = {
+  id: string;
+  title: string;
+  status: string;
+  origin: string;
+  iterations: number;
+  tool_calls: number;
+  updated_at: string;
 };
+
+type RuntimeEvent = {
+  id: string;
+  type: string;
+  ts: number;
+  timestamp: string;
+  goal_id?: string;
+  source: string;
+  payload?: Record<string, unknown>;
+};
+
+type DashboardState = {
+  heartbeat: {
+    enabled?: boolean;
+    auto_run?: boolean;
+    allow_proposals?: boolean;
+    beats?: number;
+    last_action?: string;
+    kill_switch?: boolean;
+  };
+  goals: Goal[];
+  events: RuntimeEvent[];
+  stats: {
+    bridgesOk: number;
+    bridgesTotal: number;
+    tools: number;
+    echoes: number;
+    events: number;
+  };
+};
+
+const initialState: DashboardState = {
+  heartbeat: {},
+  goals: [],
+  events: [],
+  stats: { bridgesOk: 0, bridgesTotal: 0, tools: 0, echoes: 0, events: 0 },
+};
+
+function timeAgo(ts?: number) {
+  if (!ts) return 'sem registro';
+  const seconds = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m`;
+  return `${Math.floor(minutes / 60)}h`;
+}
+
+function statusClass(status: string) {
+  if (status === 'done') return 'tethered';
+  if (['failed', 'cancelled'].includes(status)) return 'severed';
+  return 'dormant';
+}
 
 export default function Dashboard() {
   const theme = useTheme();
-  const [stats, setStats] = useState({ tethersOk: 0, tethersTotal: 5, echoes: 0, tools: 0 });
+  const [state, setState] = useState<DashboardState>(initialState);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
-    async function loadStats() {
+
+    async function readJson(path: string) {
+      const res = await fetch(path);
+      return res.ok ? res.json() : null;
+    }
+
+    async function load() {
       try {
-        const [tethersRes, echoesRes, toolsRes] = await Promise.all([
-          fetch('/api/tars/tethers/status'),
-          fetch('/api/tars/echoes/summary'),
-          fetch('/api/tars/tools'),
+        const [heartbeat, goals, events, bridges, echoes, tools] = await Promise.all([
+          readJson('/api/tars/heartbeat'),
+          readJson('/api/tars/goals?limit=6'),
+          readJson('/api/tars/events?limit=10'),
+          readJson('/api/tars/tethers/status'),
+          readJson('/api/tars/echoes/summary'),
+          readJson('/api/tars/tools'),
         ]);
-        const tethers = tethersRes.ok ? await tethersRes.json() : null;
-        const echoes = echoesRes.ok ? await echoesRes.json() : null;
-        const tools = toolsRes.ok ? await toolsRes.json() : null;
         if (cancelled) return;
-        const rows = Array.isArray(tethers?.tethers) ? tethers.tethers : [];
-        setStats({
-          tethersOk: rows.filter((t: { ok?: boolean }) => t.ok).length,
-          tethersTotal: rows.length || 5,
-          echoes: Number(echoes?.total ?? 0),
-          tools: Number(tools?.count ?? tools?.tools?.length ?? 0),
+
+        const bridgeRows = Array.isArray(bridges?.tethers) ? bridges.tethers : [];
+        const eventRows = Array.isArray(events?.events) ? events.events : [];
+        setState({
+          heartbeat: heartbeat?.heartbeat ?? {},
+          goals: Array.isArray(goals?.goals) ? goals.goals : [],
+          events: eventRows,
+          stats: {
+            bridgesOk: bridgeRows.filter((item: { ok?: boolean }) => item.ok).length,
+            bridgesTotal: bridgeRows.length,
+            tools: Number(tools?.count ?? tools?.tools?.length ?? 0),
+            echoes: Number(echoes?.total ?? 0),
+            events: Number(events?.summary?.total ?? eventRows.length),
+          },
         });
       } catch {
-        // Mantém os defaults se o backend ainda estiver subindo.
+        if (!cancelled) setState(initialState);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     }
-    loadStats();
-    const id = setInterval(loadStats, 15_000);
+
+    load();
+    const id = setInterval(load, 10_000);
     return () => {
       cancelled = true;
       clearInterval(id);
     };
   }, []);
 
+  const activeGoals = useMemo(
+    () => state.goals.filter((goal) => ['pending', 'running', 'verifying'].includes(goal.status)).length,
+    [state.goals],
+  );
+
+  const heartbeatState = state.heartbeat.kill_switch
+    ? 'kill-switch'
+    : state.heartbeat.enabled
+      ? 'ativo'
+      : 'desligado';
+
   return (
-    <div className="space-y-10">
-      {/* Hero — o vazio que respira */}
-      <motion.div
-        variants={fadeUp}
-        initial="hidden"
-        animate="show"
-        className="relative flex flex-col items-center justify-center pt-8 pb-6"
-      >
-        <KamuiVoid size={300} />
-
-        <div className="text-center mt-4 -mb-2">
-          <h1 className="void-title text-5xl tracking-[0.4em] font-bold">TARS</h1>
-          <p
-            className="text-[11px] tracking-[0.6em] uppercase mt-3 kanji"
-            style={{ color: theme.textGhost }}
-          >
-            space exploration companion
-          </p>
-        </div>
-      </motion.div>
-
-      {/* Estado da dimensão */}
-      <motion.div
-        variants={stagger}
-        initial="hidden"
-        animate="show"
-        className="grid grid-cols-1 md:grid-cols-3 gap-4"
-      >
-        {[
-          {
-            icon: Cable,
-            label: 'Bridges',
-            value: `${stats.tethersOk} / ${stats.tethersTotal}`,
-            desc: 'pontes conectadas ao hub',
-          },
-          {
-            icon: Boxes,
-            label: 'Arsenal',
-            value: String(stats.tools),
-            desc: 'ferramentas embutidas',
-          },
-          {
-            icon: Activity,
-            label: 'Echoes',
-            value: String(stats.echoes),
-            desc: 'eventos registrados',
-          },
-        ].map((s) => {
-          const Icon = s.icon;
-          return (
-            <motion.div key={s.label} variants={fadeUp}>
-              <div className="void-panel rounded-2xl p-6 h-full">
-                <div className="flex items-start justify-between">
-                  <div
-                    className="w-11 h-11 rounded-xl flex items-center justify-center"
-                    style={{
-                      background: theme.sharinganSoft,
-                      border: `1px solid ${theme.border}`,
-                    }}
-                  >
-                    <Icon className="w-5 h-5" style={{ color: theme.sharingan, opacity: 0.8 }} />
-                  </div>
-                </div>
-                <div className="mt-5">
-                  <div
-                    className="text-3xl font-bold tracking-tight"
-                    style={{ color: theme.text }}
-                  >
-                    {s.value}
-                  </div>
-                  <div
-                    className="text-[11px] font-semibold tracking-[0.2em] uppercase mt-1.5"
-                    style={{ color: theme.textSoft }}
-                  >
-                    {s.label}
-                  </div>
-                  <div className="text-xs mt-1" style={{ color: theme.textMute }}>
-                    {s.desc}
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          );
-        })}
-      </motion.div>
-
-      {/* Mensagem do vazio */}
-      <motion.div
-        variants={fadeUp}
-        initial="hidden"
-        animate="show"
-        className="void-panel rounded-2xl p-8 relative overflow-hidden"
-      >
-        <div className="relative flex items-start gap-4">
-          <div
-            className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
-            style={{ background: theme.sharinganSoft, border: `1px solid ${theme.border}` }}
-          >
-            <Sparkles className="w-4 h-4" style={{ color: theme.sharingan, opacity: 0.8 }} />
-          </div>
-          <div className="flex-1">
-            <h2 className="text-lg font-semibold mb-1" style={{ color: theme.text }}>
-              {stats.echoes > 0 ? 'O TARS está operando.' : 'O TARS está em standby.'}
-            </h2>
-            <p className="text-sm leading-relaxed" style={{ color: theme.textSoft }}>
-              {stats.echoes > 0
-                ? 'Os ecos já estão sendo registrados. Use Echoes para ver os fluxos completos e Bridges para conferir quais pontes estão ativas.'
-                : 'Nada atravessou as pontes ainda. Quando Yume e Kamui forem alcançados pelo hub, esta superfície vai refletir tudo que passa por ela.'}
+    <motion.div variants={fadeUp} initial="hidden" animate="show" className="space-y-5">
+      <header className="mission-shell rounded-lg p-5 sm:p-6">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-3xl">
+            <div className="panel-kicker">
+              <Activity className="h-3.5 w-3.5" />
+              runtime core
+            </div>
+            <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl" style={{ color: theme.text }}>
+              TARS Operational Dimension
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed" style={{ color: theme.textSoft }}>
+              Estado operacional, fila de objetivos, pontes e eventos persistidos em um painel de missão contínua.
             </p>
-            <div className="flex items-center gap-2 mt-4">
-              <div className="state-badge dormant">
-                <div
-                  className="w-1.5 h-1.5 rounded-full"
-                  style={{ background: theme.textMute }}
-                />
-                dormente
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:min-w-[420px]">
+            {[
+              ['heartbeat', heartbeatState],
+              ['goals', String(activeGoals)],
+              ['bridges', `${state.stats.bridgesOk}/${state.stats.bridgesTotal}`],
+              ['polling', '10s'],
+            ].map(([label, value]) => (
+              <div key={label} className="mono-stat">
+                <div className="text-[10px] uppercase" style={{ color: theme.textGhost }}>{label}</div>
+                <div className="mt-1 truncate text-lg font-semibold" style={{ color: theme.text }}>{loading ? '...' : value}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </header>
+
+      <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        {[
+          { label: 'Heartbeat', value: heartbeatState, icon: HeartPulse },
+          { label: 'Goals ativos', value: String(activeGoals), icon: Target },
+          { label: 'Eventos', value: String(state.stats.events), icon: Activity },
+          { label: 'Tools', value: String(state.stats.tools), icon: Boxes },
+          { label: 'Bridges', value: `${state.stats.bridgesOk}/${state.stats.bridgesTotal}`, icon: Cable },
+        ].map((item) => {
+          const Icon = item.icon;
+          return (
+            <div key={item.label} className="instrument-card rounded-lg p-4">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.textMute }}>
+                  {item.label}
+                </span>
+                <Icon className="h-4 w-4" style={{ color: theme.sharinganDeep }} />
+              </div>
+              <div className="mt-3 truncate text-2xl font-semibold" style={{ color: theme.text }}>
+                {loading ? '...' : item.value}
               </div>
             </div>
+          );
+        })}
+      </section>
+
+      <section className="grid grid-cols-1 gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+        <div className="void-panel rounded-lg p-5">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold uppercase tracking-[0.18em]" style={{ color: theme.textSoft }}>
+                Objetivos recentes
+              </h2>
+            </div>
+            <span className="state-badge dormant">{state.heartbeat.auto_run ? 'auto-run' : 'manual'}</span>
+          </div>
+
+          <div className="space-y-2">
+            {state.goals.length === 0 ? (
+              <div className="flex items-center gap-2 py-8 text-sm" style={{ color: theme.textMute }}>
+                <CirclePause className="h-4 w-4" />
+                nenhum objetivo registrado
+              </div>
+            ) : (
+              state.goals.map((goal) => (
+                <div
+                  key={goal.id}
+                  className="grid grid-cols-[1fr_auto] gap-3 border-t py-3 first:border-t-0 first:pt-0"
+                  style={{ borderColor: theme.border }}
+                >
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-medium" style={{ color: theme.text }}>
+                      {goal.title}
+                    </div>
+                    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs" style={{ color: theme.textMute }}>
+                      <span>{goal.origin}</span>
+                      <span>iter {goal.iterations}</span>
+                      <span>tools {goal.tool_calls}</span>
+                    </div>
+                  </div>
+                  <span className={`state-badge ${statusClass(goal.status)}`}>{goal.status}</span>
+                </div>
+              ))
+            )}
           </div>
         </div>
-      </motion.div>
-    </div>
+
+        <div className="void-panel rounded-lg p-5">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold uppercase tracking-[0.18em]" style={{ color: theme.textSoft }}>
+              Event stream
+            </h2>
+            <span className="text-xs font-mono" style={{ color: theme.textGhost }}>
+              {state.stats.echoes} echoes
+            </span>
+          </div>
+
+          <div className="space-y-0">
+            {state.events.length === 0 ? (
+              <div className="flex items-center gap-2 py-8 text-sm" style={{ color: theme.textMute }}>
+                <CirclePause className="h-4 w-4" />
+                nenhum evento persistido
+              </div>
+            ) : (
+              state.events.map((event) => (
+                <div
+                  key={event.id}
+                  className="grid grid-cols-[70px_1fr_auto] items-center gap-3 border-t py-3 first:border-t-0 first:pt-0"
+                  style={{ borderColor: theme.border }}
+                >
+                  <span className="text-xs font-mono" style={{ color: theme.textGhost }}>
+                    {timeAgo(event.ts)}
+                  </span>
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-medium" style={{ color: theme.text }}>
+                      {event.type}
+                    </div>
+                    <div className="mt-1 truncate text-xs" style={{ color: theme.textMute }}>
+                      {event.goal_id ? `goal ${event.goal_id.slice(0, 8)}` : event.source}
+                    </div>
+                  </div>
+                  <span className="text-xs font-mono" style={{ color: theme.textGhost }}>
+                    {event.source}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </section>
+    </motion.div>
   );
 }

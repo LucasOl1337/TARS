@@ -30,12 +30,29 @@ def build_catalog() -> list[dict[str, Any]]:
         _ep("tars-persona", "GET", "/api/tars/persona", "persona/comportamento ativo do TARS"),
         _ep("tars-system-prompt", "GET", "/api/tars/system-prompt", "system prompt composto"),
         _ep("tars-providers", "GET", "/api/tars/chat/providers", "providers LLM disponíveis"),
+        _ep("tars-models", "GET", "/api/tars/chat/models", "motores/modelos LLM disponíveis para o TARS"),
+        _ep("tars-harness-state", "GET", "/api/tars/harness/state", "estado navegável do harness (etapas inicialmente vazias)"),
+        _ep("tars-harness-components", "GET", "/api/tars/harness/components", "lista componentes testáveis do harness"),
+        _ep("tars-harness-flows", "GET", "/api/tars/harness/flows", "lista fluxos completos de diagnóstico do TARS"),
     ]
     intelligence_in = [
         _ep("tars-chat", "POST", "/api/tars/chat", "conversa com o TARS (invoca LLM)",
             '{\n  "messages": [{"role": "user", "content": "olá TARS"}]\n}'),
         _ep("tars-persona-update", "PUT", "/api/tars/persona", "atualiza o comportamento do TARS",
             '{\n  "tone": "mais sarcástico",\n  "temperature": 0.9\n}'),
+        _ep("tars-model-update", "PUT", "/api/tars/chat/model", "define o motor/modelo ativo do TARS",
+            '{\n  "model": "ninerouter/cx/gpt-5.5-high"\n}'),
+        _ep("tars-harness-execute", "POST", "/api/tars/harness/execute", "executa o fluxo blackboard do harness",
+            '{\n  "stages": [\n    {\n      "title": "Processar com LLM",\n      "kind": "llm",\n      "model": "glm-5.1",\n      "persona": "tars",\n      "tool": "",\n      "instruction": "resuma o objetivo"\n    }\n  ]\n}'),
+        _ep("tars-harness-component-run", "POST", "/api/tars/harness/components/{id}/run", "roda um componente do harness",
+            '{\n  "live_ai": false\n}'),
+        _ep("tars-harness-run", "POST", "/api/tars/harness/run", "roda múltiplos componentes do harness",
+            '{\n  "components": ["health", "persona", "providers"]\n}'),
+        _ep("tars-harness-flow-create", "POST", "/api/tars/harness/flows", "cria ou atualiza um fluxo customizado",
+            '{\n  "id": "meu-fluxo",\n  "name": "Meu fluxo",\n  "stages": []\n}'),
+        _ep("tars-harness-flow-run", "POST", "/api/tars/harness/flows/{id}/run", "roda um fluxo completo de diagnóstico"),
+        _ep("tars-harness-flows-run-all", "POST", "/api/tars/harness/flows/run-all", "roda todos os fluxos de diagnóstico",
+            '{\n  "stop_on_failure": false\n}'),
     ]
 
     # Agente — a superfície de SERVIÇO do TARS: outros serviços delegam trabalho.

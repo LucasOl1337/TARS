@@ -75,6 +75,29 @@ GLM_BASE = os.environ.get("GLM_BASE", os.environ.get("VIDEOGEN_GLM_API_BASE_URL"
 KIMI_API_KEY = _get_key("KIMI_API_KEY", ["MOONSHOT_API_KEY"])
 KIMI_BASE = os.environ.get("KIMI_BASE", os.environ.get("MOONSHOT_BASE", "https://api.kimi.com/coding/v1")).rstrip("/")
 
+# 9Router local / cloud. Ele segue contrato OpenAI-compatible:
+#   POST <base>/chat/completions
+#   GET  <base>/models
+# Defaults locais permitem usar o roteador desktop sem duplicar segredo no TARS.
+NINEROUTER_BASE = os.environ.get(
+    "NINEROUTER_BASE",
+    os.environ.get(
+        "NINEROUTER_BASE_URL",
+        os.environ.get(
+            "NINE_ROUTER_BASE_URL",
+            os.environ.get("VIDEOGEN_SCRIPT_API_BASE_URL", "http://127.0.0.1:20128/v1"),
+        ),
+    ),
+).rstrip("/")
+NINEROUTER_API_KEY = _get_key(
+    "NINEROUTER_API_KEY",
+    ["NINEROUTER_KEY", "NINE_ROUTER_API_KEY", "VIDEOGEN_SCRIPT_API_KEY"],
+) or os.environ.get("NINEROUTER_LOCAL_API_KEY", "local")
+NINEROUTER_MODEL = os.environ.get(
+    "NINEROUTER_MODEL",
+    os.environ.get("VIDEOGEN_SCRIPT_MODEL", "cx/gpt-5.5-high"),
+).strip()
+
 # Modelo default da inteligência TARS (pode ser glm-5.1 via z.ai)
 TARS_MODEL = os.environ.get("TARS_MODEL", os.environ.get("VIDEOGEN_GLM_MODEL", "glm-5.1")).strip()
 TARS_TEMPERATURE = float(os.environ.get("TARS_TEMPERATURE", "0.7"))

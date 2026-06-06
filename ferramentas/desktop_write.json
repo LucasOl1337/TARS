@@ -1,0 +1,21 @@
+{
+  "id": "desktop_write",
+  "name": "Gravar no Desktop",
+  "description": "Escreve ou anexa texto em um arquivo sob o Desktop do usuário, sem permitir caminhos fora dessa raiz.",
+  "category": "sistema",
+  "kind": "tool",
+  "provider": "tars",
+  "capabilities": ["filesystem", "desktop", "escrita"],
+  "tags": ["desktop", "fs", "write", "file"],
+  "prompt_instruction": "Use quando a tarefa pedir explicitamente salvar um arquivo de texto na área de trabalho/Desktop. Informe filename e content. mode='a' para anexar, 'w' para sobrescrever.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "filename": { "type": "string", "description": "nome relativo ao Desktop, ex: 'motivos-cavalos.txt'" },
+      "content": { "type": "string", "description": "conteúdo textual a gravar" },
+      "mode": { "type": "string", "enum": ["w", "a"], "description": "w sobrescreve; a anexa" }
+    },
+    "required": ["filename", "content"]
+  },
+  "invoke": { "type": "builtin", "handler": "desktop_write" }
+}

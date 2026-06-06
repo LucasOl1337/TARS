@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Bot,
-  BrainCircuit,
   CheckCircle2,
   Code2,
   Copy,
@@ -13,7 +12,6 @@ import {
   RefreshCw,
   Route,
   Send,
-  ShieldCheck,
   Sparkles,
   Terminal,
   Wrench,
@@ -77,6 +75,8 @@ interface ChatMessage {
   content: string;
   meta?: string;
 }
+
+type SidePanel = 'contract' | 'executor' | 'chat';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 12 },
@@ -192,21 +192,22 @@ export default function ToolsPage() {
   const [chatLoading, setChatLoading] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [activePanel, setActivePanel] = useState<SidePanel>('contract');
 
   const selectedTool = useMemo(
     () => tools.find((tool) => tool.id === selectedId) || tools[0],
     [selectedId, tools],
   );
 
-  const groupedTools = useMemo(() => {
-    return tools.reduce<Record<string, ToolSpec[]>>((acc, tool) => {
-      const key = tool.category || 'geral';
-      acc[key] ||= [];
-      acc[key].push(tool);
-      return acc;
-    }, {});
+  const compactTools = useMemo(() => {
+    return [...tools].sort((a, b) => {
+      const category = (a.category || 'geral').localeCompare(b.category || 'geral');
+      if (category !== 0) return category;
+      return a.name.localeCompare(b.name);
+    });
   }, [tools]);
 
+  const categoryCount = useMemo(() => new Set(tools.map((tool) => tool.category || 'geral')).size, [tools]);
   const executableCount = tools.filter((tool) => tool.executable).length;
 
   async function loadTools() {
@@ -330,325 +331,309 @@ export default function ToolsPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <motion.div variants={fadeUp} initial="hidden" animate="show" className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <div
-              className="flex h-11 w-11 items-center justify-center rounded-xl"
-              style={{ background: theme.sharinganSoft, border: `1px solid ${theme.borderHover}` }}
-            >
-              <Wrench className="w-5 h-5" style={{ color: theme.sharingan }} />
+    <div className="space-y-3">
+      <motion.div variants={fadeUp} initial="hidden" animate="show" className="mission-shell flex flex-col gap-3 rounded-lg p-3 sm:p-4 xl:flex-row xl:items-center xl:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="panel-kicker">
+              <Wrench className="h-3.5 w-3.5" />
+              tool arsenal
             </div>
-            <div>
-              <h1 className="void-title text-4xl">Ferramentas</h1>
-              <p className="mt-1 text-sm" style={{ color: theme.textSoft }}>
-                Arsenal operacional do TARS: catálogo, contrato, executor e chat.
-              </p>
-            </div>
+            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl" style={{ color: theme.text }}>Ferramentas</h1>
+            <span className={`rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] ${statusTone(providers?.ready)}`}>
+              {providers?.ready ? 'llm pronto' : 'llm offline'}
+            </span>
           </div>
+          <p className="mt-1 text-xs leading-relaxed" style={{ color: theme.textSoft }}>
+            Catálogo compacto, contrato, executor manual e chat de teste no mesmo painel.
+          </p>
         </div>
 
-        <button
-          type="button"
-          onClick={loadTools}
-          className="btn-rift inline-flex items-center justify-center gap-2"
-          title="Recarregar catálogo"
-        >
-          <RefreshCw className="w-4 h-4" />
-          Recarregar
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {[
+            ['catalogadas', tools.length],
+            ['executáveis', executableCount],
+            ['categorias', categoryCount],
+            ['provider', providers?.active?.provider || 'offline'],
+            ['modelo', providers?.active?.model || 'sem modelo'],
+          ].map(([label, value]) => (
+            <div key={label} className="rounded-lg border border-white/10 bg-black/20 px-3 py-2">
+              <div className="text-[9px] uppercase tracking-[0.18em]" style={{ color: theme.textGhost }}>
+                {label}
+              </div>
+              <div className="mt-0.5 max-w-[150px] truncate text-xs font-semibold" style={{ color: theme.text }}>
+                {value}
+              </div>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={loadTools}
+            className="btn-rift inline-flex items-center justify-center gap-2 px-3 py-2 text-xs"
+            title="Recarregar catálogo"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            Recarregar
+          </button>
+        </div>
       </motion.div>
 
       {error && (
-        <div className="rounded-xl border border-red-400/20 bg-red-400/10 p-4 text-sm text-red-200">
+        <div className="rounded-lg border border-red-400/20 bg-red-400/10 p-3 text-sm text-red-200">
           {error}
         </div>
       )}
 
-      <motion.div variants={fadeUp} initial="hidden" animate="show" className="grid grid-cols-1 gap-3 md:grid-cols-4">
-        {[
-          { icon: Wrench, label: 'catalogadas', value: String(tools.length) },
-          { icon: CheckCircle2, label: 'executáveis', value: String(executableCount) },
-          { icon: BrainCircuit, label: 'provider', value: providers?.active?.provider || 'offline' },
-          { icon: Bot, label: 'modelo', value: providers?.active?.model || 'não configurado' },
-        ].map((item) => {
-          const Icon = item.icon;
-          return (
-            <div key={item.label} className="void-panel rounded-xl p-4">
-              <div className="flex items-center justify-between gap-3">
-                <Icon className="h-4 w-4" style={{ color: theme.sharingan }} />
-                <span className="text-[10px] uppercase tracking-[0.22em]" style={{ color: theme.textGhost }}>
-                  {item.label}
-                </span>
-              </div>
-              <div className="mt-3 truncate text-lg font-semibold" style={{ color: theme.text }}>
-                {item.value}
-              </div>
-            </div>
-          );
-        })}
-      </motion.div>
-
       {catalogErrors && catalogErrors.length > 0 && (
-        <div className="rounded-xl border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
+        <div className="rounded-lg border border-amber-400/20 bg-amber-400/10 p-3 text-sm text-amber-100">
           {catalogErrors.map((item) => `${item.file || 'arquivo'}: ${item.error || 'erro'}`).join(' · ')}
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.1fr)_minmax(420px,0.9fr)]">
-        <div className="space-y-5">
-          <motion.div variants={fadeUp} initial="hidden" animate="show" className="void-panel rounded-2xl p-5">
-            <SectionLabel icon={Route} label="catálogo" />
-            <div className="mt-4 space-y-4">
-              {Object.entries(groupedTools).map(([category, items]) => (
-                <div key={category}>
-                  <div className="mb-2 text-[10px] uppercase tracking-[0.22em]" style={{ color: theme.textGhost }}>
-                    {category}
-                  </div>
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                    {items.map((tool) => {
-                      const active = selectedTool?.id === tool.id;
-                      return (
-                        <button
-                          key={tool.id}
-                          type="button"
-                          onClick={() => setSelectedId(tool.id)}
-                          className={`rounded-xl border p-4 text-left transition-all ${
-                            active ? 'bg-white/[0.055]' : 'bg-white/[0.015] hover:bg-white/[0.035]'
-                          }`}
-                          style={{ borderColor: active ? theme.borderActive : theme.border }}
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <div className="truncate text-sm font-semibold" style={{ color: theme.text }}>
-                                {tool.name}
-                              </div>
-                              <div className="mt-1 text-[11px] font-mono" style={{ color: theme.textGhost }}>
-                                {tool.id}
-                              </div>
-                            </div>
-                            <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] ${statusTone(tool.executable)}`}>
-                              {tool.executable ? 'exec' : 'doc'}
-                            </span>
-                          </div>
-                          <p className="mt-3 line-clamp-2 text-xs leading-relaxed" style={{ color: theme.textSoft }}>
-                            {tool.description}
-                          </p>
-                          {tool.capabilities.length > 0 && (
-                            <div className="mt-3 flex flex-wrap gap-1.5">
-                              {tool.capabilities.slice(0, 3).map((capability) => (
-                                <span key={capability} className="rounded-md border border-white/10 bg-white/[0.025] px-2 py-1 text-[10px]" style={{ color: theme.textMute }}>
-                                  {capability}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
+      <div className="grid grid-cols-1 items-start gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(420px,0.42fr)] 2xl:grid-cols-[minmax(0,1fr)_520px]">
+        <motion.div variants={fadeUp} initial="hidden" animate="show" className="void-panel rounded-xl p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <SectionLabel icon={Route} label="catálogo compacto" />
+            <div className="text-[10px] uppercase tracking-[0.18em]" style={{ color: theme.textGhost }}>
+              {tools.length} tools · {categoryCount} categorias
             </div>
-          </motion.div>
+          </div>
 
+          <div className="mt-3 grid grid-cols-[repeat(auto-fit,minmax(230px,1fr))] gap-2">
+            {compactTools.map((tool) => {
+              const active = selectedTool?.id === tool.id;
+              return (
+                <button
+                  key={tool.id}
+                  type="button"
+                  onClick={() => setSelectedId(tool.id)}
+                  className={`group min-h-[62px] rounded-lg border px-3 py-2 text-left transition-all ${
+                    active ? 'bg-white/[0.06]' : 'bg-white/[0.014] hover:bg-white/[0.035]'
+                  }`}
+                  style={{ borderColor: active ? theme.borderActive : theme.border }}
+                  title={`${tool.name}\n${tool.id}\n${tool.description}`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="truncate text-[13px] font-semibold leading-tight" style={{ color: theme.text }}>
+                        {tool.name}
+                      </div>
+                      <div className="mt-1 truncate font-mono text-[10px]" style={{ color: theme.textGhost }}>
+                        {tool.id}
+                      </div>
+                    </div>
+                    <span className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] uppercase tracking-[0.12em] ${statusTone(tool.executable)}`}>
+                      {tool.executable ? 'exec' : 'doc'}
+                    </span>
+                  </div>
+                  <div className="mt-1.5 flex items-center justify-between gap-2">
+                    <span className="rounded border border-white/10 bg-black/20 px-1.5 py-0.5 text-[9px] uppercase tracking-[0.12em]" style={{ color: theme.textMute }}>
+                      {tool.category || 'geral'}
+                    </span>
+                    {tool.capabilities.length > 0 && (
+                      <span className="truncate text-[10px]" style={{ color: theme.textGhost }}>
+                        {tool.capabilities.slice(0, 2).join(' · ')}
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </motion.div>
+
+        <div className="space-y-3 xl:sticky xl:top-3 xl:self-start">
           {selectedTool && (
-            <motion.div variants={fadeUp} initial="hidden" animate="show" className="void-panel rounded-2xl p-5">
-              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                <div>
-                  <SectionLabel icon={FileText} label="documentação inteligente" />
-                  <h2 className="mt-3 text-xl font-semibold" style={{ color: theme.text }}>
+            <motion.div variants={fadeUp} initial="hidden" animate="show" className="void-panel rounded-xl p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <SectionLabel icon={FileText} label="selecionada" />
+                  <h2 className="mt-2 truncate text-lg font-semibold" style={{ color: theme.text }}>
                     {selectedTool.name}
                   </h2>
-                  <p className="mt-1 max-w-3xl text-sm leading-relaxed" style={{ color: theme.textSoft }}>
+                  <p className="mt-1 line-clamp-2 text-xs leading-relaxed" style={{ color: theme.textSoft }}>
                     {selectedTool.prompt_instruction || selectedTool.description}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={copyDoc}
-                  className="btn-rift inline-flex items-center justify-center gap-2"
-                  title="Copiar doc da ferramenta"
-                >
-                  <Copy className="h-4 w-4" />
-                  {copied ? 'Copiado' : 'Copiar'}
-                </button>
+                <span className={`shrink-0 rounded-full border px-2 py-1 text-[10px] uppercase tracking-[0.14em] ${statusTone(selectedTool.executable)}`}>
+                  {selectedTool.executable ? 'exec' : 'doc'}
+                </span>
               </div>
 
-              <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
-                <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-                  <div className="flex items-center gap-2 text-xs font-semibold" style={{ color: theme.textSoft }}>
-                    <Terminal className="h-4 w-4" />
-                    POST {endpointFor(selectedTool)}
-                  </div>
-                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                    <div className="rounded-lg bg-white/[0.025] p-3">
-                      <div className="text-white/35">invoke</div>
-                      <div className="mt-1 font-mono" style={{ color: theme.text }}>
-                        {selectedTool.invoke?.type || 'catalog'}
-                      </div>
+              <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
+                {[
+                  ['categoria', selectedTool.category || 'geral'],
+                  ['provider', selectedTool.provider || 'local'],
+                  ['invoke', selectedTool.invoke?.type || 'catalog'],
+                  ['executor', selectedTool.invoke?.handler || selectedTool.invoke?.bridge || 'sem executor'],
+                ].map(([label, value]) => (
+                  <div key={label} className="min-w-0 rounded-lg border border-white/10 bg-black/20 px-2 py-1.5">
+                    <div className="text-[9px] uppercase tracking-[0.15em]" style={{ color: theme.textGhost }}>
+                      {label}
                     </div>
-                    <div className="rounded-lg bg-white/[0.025] p-3">
-                      <div className="text-white/35">executor</div>
-                      <div className="mt-1 truncate font-mono" style={{ color: theme.text }}>
-                        {selectedTool.invoke?.handler || selectedTool.invoke?.bridge || 'sem executor'}
-                      </div>
-                    </div>
-                  </div>
-                  <pre className="mt-4 max-h-64 overflow-auto rounded-lg border border-white/10 bg-black/30 p-3 text-[11px] leading-relaxed" style={{ color: theme.textSoft }}>
-                    {toolDoc(selectedTool)}
-                  </pre>
-                </div>
-
-                <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-                  <div className="flex items-center gap-2 text-xs font-semibold" style={{ color: theme.textSoft }}>
-                    <Code2 className="h-4 w-4" />
-                    JSON Schema
-                  </div>
-                  <pre className="mt-3 max-h-72 overflow-auto rounded-lg border border-white/10 bg-black/30 p-3 text-[11px] leading-relaxed" style={{ color: theme.textSoft }}>
-                    {pretty(selectedTool.parameters || {})}
-                  </pre>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {selectedTool && (
-            <motion.div variants={fadeUp} initial="hidden" animate="show" className="void-panel rounded-2xl p-5">
-              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <SectionLabel icon={Play} label="executor manual" />
-                <button
-                  type="button"
-                  onClick={invokeSelectedTool}
-                  disabled={!selectedTool.executable || invoking}
-                  className="btn-rift inline-flex items-center justify-center gap-2"
-                  title="Executar ferramenta"
-                >
-                  {invoking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-                  Executar
-                </button>
-              </div>
-
-              <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-                <textarea
-                  value={invokeInput}
-                  onChange={(event) => setInvokeInput(event.target.value)}
-                  spellCheck={false}
-                  className="min-h-[260px] resize-y rounded-xl border border-white/10 bg-black/25 p-4 font-mono text-xs leading-relaxed outline-none transition focus:border-white/25"
-                  style={{ color: theme.textSoft }}
-                />
-                <div className="min-h-[260px] rounded-xl border border-white/10 bg-black/25 p-4">
-                  <div className="mb-3 flex items-center gap-2 text-xs font-semibold" style={{ color: theme.textSoft }}>
-                    {invokeError ? <XCircle className="h-4 w-4 text-red-300" /> : <CheckCircle2 className="h-4 w-4 text-emerald-300" />}
-                    resultado
-                  </div>
-                  {invokeError ? (
-                    <pre className="overflow-auto whitespace-pre-wrap text-xs text-red-200">{invokeError}</pre>
-                  ) : invokeResult ? (
-                    <pre className="max-h-[230px] overflow-auto text-xs leading-relaxed" style={{ color: theme.textSoft }}>
-                      {pretty(invokeResult)}
-                    </pre>
-                  ) : (
-                    <div className="flex h-[210px] items-center justify-center text-center text-xs" style={{ color: theme.textGhost }}>
-                      {selectedTool.executable ? 'aguardando execução' : 'ferramenta apenas documentada'}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </div>
-
-        <div className="space-y-5 xl:sticky xl:top-4 xl:self-start">
-          <motion.div variants={fadeUp} initial="hidden" animate="show" className="void-panel rounded-2xl p-5">
-            <div className="flex items-center justify-between gap-3">
-              <SectionLabel icon={MessageSquare} label="chat de teste" />
-              <span className={`rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] ${statusTone(providers?.ready)}`}>
-                {providers?.ready ? 'llm pronto' : 'llm offline'}
-              </span>
-            </div>
-
-            <div className="mt-4 flex h-[480px] flex-col rounded-xl border border-white/10 bg-black/20">
-              <div className="flex-1 space-y-3 overflow-y-auto p-4">
-                {chatMessages.map((message, index) => (
-                  <div key={`${message.role}-${index}`} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div
-                      className={`max-w-[88%] rounded-2xl border px-4 py-3 ${
-                        message.role === 'user'
-                          ? 'border-white/15 bg-white/[0.08]'
-                          : 'border-white/10 bg-white/[0.025]'
-                      }`}
-                    >
-                      <div className="mb-1 flex items-center gap-2 text-[10px] uppercase tracking-[0.18em]" style={{ color: theme.textGhost }}>
-                        {message.role === 'user' ? <Sparkles className="h-3 w-3" /> : <Bot className="h-3 w-3" />}
-                        {message.role === 'user' ? 'humano' : 'tars'}
-                        {message.meta && <span className="normal-case tracking-normal text-white/30">{message.meta}</span>}
-                      </div>
-                      <div className="whitespace-pre-wrap text-sm leading-relaxed" style={{ color: theme.textSoft }}>
-                        {message.content}
-                      </div>
+                    <div className="mt-0.5 truncate font-mono" style={{ color: theme.textSoft }}>
+                      {value}
                     </div>
                   </div>
                 ))}
-                {chatLoading && (
-                  <div className="flex items-center gap-2 text-xs" style={{ color: theme.textGhost }}>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    processando
-                  </div>
-                )}
               </div>
 
-              <div className="border-t border-white/10 p-3">
-                <div className="flex gap-2">
+              <div className="mt-3 grid grid-cols-3 gap-1 rounded-lg border border-white/10 bg-black/20 p-1">
+                {[
+                  { id: 'contract' as const, label: 'Contrato', icon: Terminal },
+                  { id: 'executor' as const, label: 'Executor', icon: Play },
+                  { id: 'chat' as const, label: 'Chat', icon: MessageSquare },
+                ].map((tab) => {
+                  const Icon = tab.icon;
+                  const active = activePanel === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setActivePanel(tab.id)}
+                      className={`flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-[11px] font-medium transition ${
+                        active ? 'bg-white/[0.08]' : 'text-white/45 hover:bg-white/[0.04] hover:text-white/70'
+                      }`}
+                      style={{ color: active ? theme.text : undefined }}
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {activePanel === 'contract' && (
+                <div className="mt-3">
+                  <div className="flex items-center justify-between gap-2 text-xs font-semibold" style={{ color: theme.textSoft }}>
+                    <span className="truncate">POST {endpointFor(selectedTool)}</span>
+                    <button
+                      type="button"
+                      onClick={copyDoc}
+                      className="btn-rift inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-xs"
+                      title="Copiar doc da ferramenta"
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                      {copied ? 'Copiado' : 'Copiar'}
+                    </button>
+                  </div>
+                  <pre className="mt-2 h-[236px] overflow-auto rounded-lg border border-white/10 bg-black/30 p-3 text-[10.5px] leading-relaxed" style={{ color: theme.textSoft }}>
+                    {toolDoc(selectedTool)}
+                  </pre>
+                  <div className="mt-2 flex items-center gap-2 text-xs font-semibold" style={{ color: theme.textSoft }}>
+                    <Code2 className="h-3.5 w-3.5" />
+                    JSON Schema
+                  </div>
+                  <pre className="mt-2 h-[176px] overflow-auto rounded-lg border border-white/10 bg-black/30 p-3 text-[10.5px] leading-relaxed" style={{ color: theme.textSoft }}>
+                    {pretty(selectedTool.parameters || {})}
+                  </pre>
+                </div>
+              )}
+
+              {activePanel === 'executor' && (
+                <div className="mt-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <SectionLabel icon={Play} label="executor manual" />
+                    <button
+                      type="button"
+                      onClick={invokeSelectedTool}
+                      disabled={!selectedTool.executable || invoking}
+                      className="btn-rift inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-xs"
+                      title="Executar ferramenta"
+                    >
+                      {invoking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
+                      Executar
+                    </button>
+                  </div>
                   <textarea
-                    value={chatInput}
-                    onChange={(event) => setChatInput(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' && !event.shiftKey) {
-                        event.preventDefault();
-                        sendChat();
-                      }
-                    }}
-                    className="min-h-[76px] flex-1 resize-none rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm outline-none transition focus:border-white/25"
-                    style={{ color: theme.text }}
+                    value={invokeInput}
+                    onChange={(event) => setInvokeInput(event.target.value)}
                     spellCheck={false}
+                    className="mt-2 h-[210px] w-full resize-none rounded-lg border border-white/10 bg-black/25 p-3 font-mono text-[11px] leading-relaxed outline-none transition focus:border-white/25"
+                    style={{ color: theme.textSoft }}
                   />
-                  <button
-                    type="button"
-                    onClick={sendChat}
-                    disabled={chatLoading || !chatInput.trim()}
-                    className="btn-rift flex w-12 items-center justify-center px-0"
-                    title="Enviar"
-                  >
-                    {chatLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                  </button>
+                  <div className="mt-2 h-[228px] rounded-lg border border-white/10 bg-black/25 p-3">
+                    <div className="mb-2 flex items-center gap-2 text-xs font-semibold" style={{ color: theme.textSoft }}>
+                      {invokeError ? <XCircle className="h-3.5 w-3.5 text-red-300" /> : <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300" />}
+                      resultado
+                    </div>
+                    {invokeError ? (
+                      <pre className="h-[184px] overflow-auto whitespace-pre-wrap text-xs text-red-200">{invokeError}</pre>
+                    ) : invokeResult ? (
+                      <pre className="h-[184px] overflow-auto text-xs leading-relaxed" style={{ color: theme.textSoft }}>
+                        {pretty(invokeResult)}
+                      </pre>
+                    ) : (
+                      <div className="flex h-[184px] items-center justify-center text-center text-xs" style={{ color: theme.textGhost }}>
+                        {selectedTool.executable ? 'aguardando execução' : 'ferramenta apenas documentada'}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                {chatError && <div className="mt-2 text-xs text-red-300">{chatError}</div>}
-              </div>
-            </div>
-          </motion.div>
+              )}
 
-          <motion.div variants={fadeUp} initial="hidden" animate="show" className="void-panel rounded-2xl p-5">
-            <SectionLabel icon={ShieldCheck} label="plano de ativação" />
-            <div className="mt-4 space-y-3">
-              {[
-                ['1', 'Registrar tools como catálogo JSON com schema, prompt_instruction e executor.'],
-                ['2', 'Copiar endpoints do 9router/Videogen como invoke bridge ou adapter dedicado.'],
-                ['3', 'Adicionar loop de decisão no chat: modelo escolhe tool, backend executa, modelo finaliza.'],
-                ['4', 'Persistir auditoria em echoes: input, ferramenta, latência, custo e artefatos gerados.'],
-              ].map(([step, text]) => (
-                <div key={step} className="flex gap-3 rounded-xl border border-white/10 bg-white/[0.018] p-3">
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-xs font-semibold" style={{ color: theme.text }}>
-                    {step}
+              {activePanel === 'chat' && (
+                <div className="mt-3 flex h-[456px] flex-col rounded-lg border border-white/10 bg-black/20">
+                  <div className="flex-1 space-y-2 overflow-y-auto p-3">
+                    {chatMessages.map((message, index) => (
+                      <div key={`${message.role}-${index}`} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                        <div
+                          className={`max-w-[92%] rounded-xl border px-3 py-2 ${
+                            message.role === 'user'
+                              ? 'border-white/15 bg-white/[0.08]'
+                              : 'border-white/10 bg-white/[0.025]'
+                          }`}
+                        >
+                          <div className="mb-1 flex items-center gap-2 text-[9px] uppercase tracking-[0.16em]" style={{ color: theme.textGhost }}>
+                            {message.role === 'user' ? <Sparkles className="h-3 w-3" /> : <Bot className="h-3 w-3" />}
+                            {message.role === 'user' ? 'humano' : 'tars'}
+                            {message.meta && <span className="normal-case tracking-normal text-white/30">{message.meta}</span>}
+                          </div>
+                          <div className="whitespace-pre-wrap text-xs leading-relaxed" style={{ color: theme.textSoft }}>
+                            {message.content}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {chatLoading && (
+                      <div className="flex items-center gap-2 text-xs" style={{ color: theme.textGhost }}>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        processando
+                      </div>
+                    )}
                   </div>
-                  <div className="text-sm leading-relaxed" style={{ color: theme.textSoft }}>
-                    {text}
+
+                  <div className="border-t border-white/10 p-2">
+                    <div className="flex gap-2">
+                      <textarea
+                        value={chatInput}
+                        onChange={(event) => setChatInput(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' && !event.shiftKey) {
+                            event.preventDefault();
+                            sendChat();
+                          }
+                        }}
+                        className="h-[58px] flex-1 resize-none rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs outline-none transition focus:border-white/25"
+                        style={{ color: theme.text }}
+                        spellCheck={false}
+                      />
+                      <button
+                        type="button"
+                        onClick={sendChat}
+                        disabled={chatLoading || !chatInput.trim()}
+                        className="btn-rift flex w-10 items-center justify-center px-0"
+                        title="Enviar"
+                      >
+                        {chatLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                      </button>
+                    </div>
+                    {chatError && <div className="mt-2 text-xs text-red-300">{chatError}</div>}
                   </div>
                 </div>
-              ))}
-            </div>
-          </motion.div>
+              )}
+            </motion.div>
+          )}
         </div>
       </div>
     </div>

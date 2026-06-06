@@ -22,6 +22,7 @@ import time
 from typing import Any
 
 import config
+from event_store import append_event
 import memory as memory_mod
 from brain import build_system_prompt, dispatch_llm, provider_for_model
 from db import get_conn, row_to_persona
@@ -203,6 +204,13 @@ async def run_goal(goal_id: str) -> dict[str, Any]:
         return {"ok": False, "status": "failed", "error": "nenhum provider LLM configurado"}
 
     update_goal(goal_id, status="running", started_at=__import__("db").now_iso())
+    append_event(
+        "goal.run_started",
+        {"title": goal.get("title"), "max_iterations": goal.get("max_iterations")},
+        goal_id=goal_id,
+        trace_id=goal.get("trace_id"),
+        source="agent",
+    )
 
     system = _runtime_system(persona, goal)
     transcript: list[dict[str, str]] = [{"role": "user", "content": _goal_kickoff(goal)}]
@@ -256,11 +264,29 @@ async def run_goal(goal_id: str) -> dict[str, Any]:
         if action == "finish":
             final_answer = str(decision.get("final_answer") or decision.get("answer") or thought)
             update_goal(goal_id, status="verifying")
+            append_event(
+                "verification.started",
+                {"definition_of_done": bool(goal.get("definition_of_done"))},
+                goal_id=goal_id,
+                trace_id=goal.get("trace_id"),
+                source="verifier",
+            )
             verdict = await verify_goal(goal, final_answer, transcript, provider, send_model)
             last_verifier = verdict
             bump_counters(goal_id, tokens=int(verdict.get("tokens", 0) or 0))
             add_step(goal_id, idx, "verify", thought=final_answer[:1000],
                      action="finish", observation=verdict, ok=verdict["passed"])
+            append_event(
+                "verification.completed",
+                {
+                    "passed": verdict["passed"],
+                    "reason": verdict.get("reason"),
+                    "missing": verdict.get("missing") or [],
+                },
+                goal_id=goal_id,
+                trace_id=goal.get("trace_id"),
+                source="verifier",
+            )
             if verdict["passed"]:
                 final_status, final_result = "done", final_answer
                 memory_mod.save(
@@ -288,6 +314,13 @@ async def run_goal(goal_id: str) -> dict[str, Any]:
             # injeta contexto interno (não vai pro log/auditoria)
             tool_input = {**tool_input, "_goal_id": goal_id,
                           "_parent_goal_id": goal_id, "_depth": int(goal.get("depth", 0))}
+            append_event(
+                "tool.requested",
+                {"tool": tool_id, "input_keys": sorted(k for k in tool_input.keys() if not k.startswith("_"))},
+                goal_id=goal_id,
+                trace_id=goal.get("trace_id"),
+                source="agent",
+            )
             t0 = time.time()
             result = await execute_tool(tool_id, tool_input, source="agent", trace_id=goal["trace_id"])
             elapsed = int((time.time() - t0) * 1000)
@@ -298,6 +331,19 @@ async def run_goal(goal_id: str) -> dict[str, Any]:
             add_step(goal_id, idx, "act", thought=thought, action=tool_id,
                      tool_input={k: v for k, v in tool_input.items() if not k.startswith("_")},
                      observation=inner, ok=ok, elapsed_ms=elapsed)
+            append_event(
+                "tool.executed",
+                {
+                    "tool": tool_id,
+                    "ok": ok,
+                    "elapsed_ms": elapsed,
+                    "status": result.get("status"),
+                    "error": result.get("error"),
+                },
+                goal_id=goal_id,
+                trace_id=goal.get("trace_id"),
+                source="tool",
+            )
             obs = json.dumps(inner, ensure_ascii=False, default=str)
             if len(obs) > 8000:
                 obs = obs[:8000] + "…[truncado]"
@@ -318,6 +364,18 @@ async def run_goal(goal_id: str) -> dict[str, Any]:
     )
     add_step(goal_id, idx + 1, "finish", action=final_status, observation=final_result,
              ok=final_status == "done")
+    append_event(
+        "goal.run_completed",
+        {
+            "status": final_status,
+            "ok": final_status == "done",
+            "iterations": idx,
+            "tool_calls": tool_calls,
+        },
+        goal_id=goal_id,
+        trace_id=goal.get("trace_id"),
+        source="agent",
+    )
     if final_status != "done":
         memory_mod.save(
             content=f"Objetivo {final_status}: {goal['title']} → {final_result[:300]}",

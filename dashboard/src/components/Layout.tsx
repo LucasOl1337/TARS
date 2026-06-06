@@ -5,15 +5,18 @@ import {
   User,
   ChevronLeft,
   ChevronRight,
+  Cpu,
   Plug2,
   Mic,
   Wrench,
   Target,
+  FlaskConical,
 } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
 import KamuiVoid from './KamuiVoid';
+import TarsScene3D from './TarsScene3D';
 
-export type PageId = 'dimension' | 'missions' | 'endpoints' | 'tools' | 'persona' | 'voice';
+export type PageId = 'dimension' | 'missions' | 'endpoints' | 'tools' | 'engines' | 'harness' | 'persona' | 'voice';
 
 interface LayoutProps {
   activePage: PageId;
@@ -33,14 +36,26 @@ const navItems: NavItem[] = [
   { id: 'missions',  label: 'Missões',   icon: Target,   hint: 'dê um objetivo e assista o TARS executar de forma autônoma' },
   { id: 'endpoints', label: 'Endpoints', icon: Plug2,    hint: 'entradas e saídas de cada módulo' },
   { id: 'tools',     label: 'Ferramentas', icon: Wrench, hint: 'arsenal de tools, contratos e chat de teste' },
+  { id: 'engines',   label: 'Motores',    icon: Cpu,     hint: 'escolha o motor LLM ativo do TARS' },
+  { id: 'harness',   label: 'Harness',    icon: FlaskConical, hint: 'etapas com motores e ferramentas' },
   { id: 'persona',   label: 'Persona',   icon: User,     hint: 'escolha a persona do Yume para o TARS' },
   { id: 'voice',     label: 'Voz',       icon: Mic,      hint: 'presença de voz + detector de necessidade de fala' },
 ];
 
 export default function Layout({ activePage, onPageChange, children }: LayoutProps) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => window.innerWidth < 900);
   const [hubOk, setHubOk] = useState<boolean | null>(null);
   const theme = useTheme();
+  const isHarness = activePage === 'harness';
+
+  useEffect(() => {
+    function syncResponsiveSidebar() {
+      if (window.innerWidth < 900) setCollapsed(true);
+    }
+    syncResponsiveSidebar();
+    window.addEventListener('resize', syncResponsiveSidebar);
+    return () => window.removeEventListener('resize', syncResponsiveSidebar);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -63,38 +78,21 @@ export default function Layout({ activePage, onPageChange, children }: LayoutPro
 
   return (
     <div
-      className="flex h-screen w-screen overflow-hidden relative"
-      style={{ background: theme.void }}
+      className="relative flex h-screen w-screen overflow-hidden"
+      style={{ background: isHarness ? '#0a0c10' : theme.void }}
     >
-      {/* ─── Fundo dimensional: chakra distante, quase imperceptível ─── */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div
-          className="absolute top-[-15%] left-[5%] w-[700px] h-[700px] rounded-full opacity-[0.022]"
-          style={{
-            background: `radial-gradient(circle, ${theme.sharingan}, transparent 65%)`,
-            filter: 'blur(140px)',
-          }}
-        />
-        <div
-          className="absolute bottom-[-20%] right-[-5%] w-[600px] h-[600px] rounded-full opacity-[0.018]"
-          style={{
-            background: `radial-gradient(circle, ${theme.rift}, transparent 70%)`,
-            filter: 'blur(140px)',
-          }}
-        />
-        {/* grid sutil — sensação de espaço cartografado */}
-        <div
-          className="absolute inset-0 opacity-[0.5]"
-          style={{
-            backgroundImage:
-              `linear-gradient(rgba(223,230,238,0.018) 1px, transparent 1px),
-               linear-gradient(90deg, rgba(223,230,238,0.018) 1px, transparent 1px)`,
-            backgroundSize: '60px 60px',
-            maskImage: 'radial-gradient(circle at center, black 25%, transparent 80%)',
-            WebkitMaskImage: 'radial-gradient(circle at center, black 25%, transparent 80%)',
-          }}
-        />
-      </div>
+      {!isHarness && <TarsScene3D collapsed={collapsed} />}
+
+      {isHarness ? (
+        <div className="fixed inset-0 pointer-events-none bg-[#0a0c10]" />
+      ) : (
+        <div className="fixed inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute inset-0 tars-grid" />
+          <div className="absolute inset-0 tars-scanlines" />
+          <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-[#080a0e] to-transparent opacity-90" />
+          <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#080a0e] to-transparent opacity-95" />
+        </div>
+      )}
 
       {/* ─── Sidebar ─── */}
       <motion.aside
@@ -105,6 +103,7 @@ export default function Layout({ activePage, onPageChange, children }: LayoutPro
         style={{
           background: `linear-gradient(180deg, ${theme.void2} 0%, ${theme.void} 100%)`,
           borderColor: theme.border,
+          boxShadow: '18px 0 50px rgba(0, 0, 0, 0.32)',
         }}
       >
         {/* Brand */}
@@ -125,9 +124,9 @@ export default function Layout({ activePage, onPageChange, children }: LayoutPro
                 transition={{ duration: 0.22 }}
                 className="flex flex-col"
               >
-                <h1 className="text-base font-bold tracking-[0.3em] sharingan-text">TARS</h1>
+                <h1 className="text-base font-bold tracking-[0.22em] sharingan-text">TARS</h1>
                 <span
-                  className="text-[9px] tracking-[0.35em] uppercase"
+                  className="text-[9px] uppercase"
                   style={{ color: theme.textGhost }}
                 >
                   companion
@@ -197,7 +196,7 @@ export default function Layout({ activePage, onPageChange, children }: LayoutPro
         {/* Collapse toggle */}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="absolute -right-3 top-20 w-6 h-6 rounded-full flex items-center justify-center cursor-pointer border z-30 transition-all hover:scale-110"
+          className="absolute -right-3 top-20 z-30 flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border transition-all hover:scale-105"
           style={{
             background: theme.void2,
             borderColor: theme.border,
@@ -212,21 +211,25 @@ export default function Layout({ activePage, onPageChange, children }: LayoutPro
       </motion.aside>
 
       {/* ─── Main ─── */}
-      <main className="flex-1 overflow-hidden relative z-10 flex flex-col">
+      <main className="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden">
         {/* topbar */}
         <div
           className="flex items-center justify-between gap-3 px-6 h-14 shrink-0 border-b"
-          style={{ borderColor: theme.border }}
+          style={{
+            borderColor: isHarness ? 'rgba(223,230,238,0.08)' : theme.border,
+            background: isHarness ? '#0d1015' : 'rgba(8, 10, 14, 0.52)',
+            backdropFilter: isHarness ? 'none' : 'blur(18px)',
+          }}
         >
           <div className="flex items-center gap-3">
             <span
-              className="text-[11px] font-medium tracking-[0.25em] uppercase"
+              className="text-[11px] font-medium uppercase"
               style={{ color: theme.textMute }}
             >
               {navItems.find(n => n.id === activePage)?.hint}
             </span>
           </div>
-          <div className="flex items-center gap-3 text-[10px] font-mono" style={{ color: theme.textGhost }}>
+          <div className="hidden items-center gap-3 text-[10px] font-mono sm:flex" style={{ color: theme.textGhost }}>
             <span>127.0.0.1 : 62025</span>
           </div>
         </div>
@@ -238,7 +241,7 @@ export default function Layout({ activePage, onPageChange, children }: LayoutPro
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-            className="px-8 py-8 max-w-[1400px] mx-auto"
+            className={`relative w-full px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8 ${activePage === 'tools' || activePage === 'harness' ? 'max-w-none' : 'max-w-[1560px]'}`}
           >
             {children}
           </motion.div>

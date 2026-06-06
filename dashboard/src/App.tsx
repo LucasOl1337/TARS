@@ -2,6 +2,8 @@ import Layout, { type PageId } from '@/components/Layout';
 import Dashboard from '@/pages/Dashboard';
 import MissionsPage from '@/pages/MissionsPage';
 import EndpointsPage from '@/pages/EndpointsPage';
+import EnginesPage from '@/pages/EnginesPage';
+import HarnessPage from '@/pages/HarnessPage';
 import PersonaPage from '@/pages/PersonaPage';
 import ToolsPage from '@/pages/ToolsPage';
 import VoicePage from '@/pages/VoicePage';
@@ -16,6 +18,8 @@ function App() {
       case 'missions':  return <MissionsPage />;
       case 'endpoints': return <EndpointsPage />;
       case 'tools':     return <ToolsPage />;
+      case 'engines':   return <EnginesPage />;
+      case 'harness':   return <HarnessPage />;
       case 'persona':   return <PersonaPage />;
       case 'voice':     return <VoicePage />;
       default:          return <Dashboard />;

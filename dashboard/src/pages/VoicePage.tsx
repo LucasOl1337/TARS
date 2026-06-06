@@ -143,30 +143,33 @@ export default function VoicePage() {
 
   return (
     <div className="space-y-8 pb-10">
-      {/* Header */}
-      <div>
-        <div className="flex items-center gap-3 mb-2">
-          <Mic className="w-6 h-6" />
-          <h1 className="text-2xl font-semibold tracking-[0.25em]">Voz &amp; Presença</h1>
+      <motion.header variants={fadeUp} initial="hidden" animate="show" className="mission-shell rounded-lg p-5 sm:p-6">
+        <div className="panel-kicker">
+          <Mic className="h-3.5 w-3.5" />
+          voice presence
         </div>
-        <p className="text-sm text-white/60 max-w-2xl">
-          Monitoramento contínuo de áudio humano. O TARS decide sozinho quando deve falar ou intervir — como um verdadeiro copiloto de missão.
+        <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl" style={{ color: theme.text }}>
+          Voz &amp; Presença
+        </h1>
+        <p className="mt-2 max-w-2xl text-sm leading-relaxed" style={{ color: theme.textSoft }}>
+          Monitoramento contínuo de áudio humano. O TARS decide sozinho quando deve falar ou intervir como copiloto de missão.
         </p>
-      </div>
+      </motion.header>
 
       {/* Status + Controles principais */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-12">
         {/* Card de Monitoramento Principal */}
-        <div className="lg:col-span-7 rounded-2xl border border-white/10 bg-white/[0.015] p-6">
+        <div className="void-panel min-w-0 rounded-lg p-6 lg:col-span-7">
           <div className="flex items-start justify-between mb-4">
             <div>
-              <div className="text-xs uppercase tracking-[0.3em] text-white/40 mb-1">PRESENÇA DE VOZ</div>
-              <div className="text-xl font-semibold">Detector de Necessidade de Fala</div>
+              <div className="panel-kicker mb-1">presença de voz</div>
+              <div className="text-xl font-semibold" style={{ color: theme.text }}>Detector de Necessidade de Fala</div>
             </div>
 
             <button
               onClick={() => setShowSettings(!showSettings)}
-              className="p-2 rounded-lg border border-white/10 hover:bg-white/5"
+              className="rounded-lg border p-2 hover:bg-white/5"
+              style={{ borderColor: theme.border }}
             >
               <Settings className="w-4 h-4" />
             </button>
@@ -174,7 +177,7 @@ export default function VoicePage() {
 
           {/* Visualizador de Áudio em Tempo Real (profissional) + VAD */}
           <div className="mb-2">
-            <div className="mb-4 h-16 rounded-xl border border-white/10 bg-black/40 overflow-hidden relative">
+            <div className="relative mb-4 h-16 overflow-hidden rounded-lg border bg-black/40" style={{ borderColor: theme.border }}>
               <canvas 
                 ref={canvasRef} 
                 width={600} 
@@ -183,7 +186,7 @@ export default function VoicePage() {
               />
               {!voice.isListening && (
                 <div className="absolute inset-0 flex items-center justify-center text-[10px] text-white/30 tracking-widest">
-                  MICROFONE INATIVO — INICIE O MONITORAMENTO PARA VER O WAVEFORM
+                  MICROFONE INATIVO - INICIE O MONITORAMENTO PARA VER O WAVEFORM
                 </div>
               )}
             </div>
@@ -191,7 +194,7 @@ export default function VoicePage() {
             {/* Indicador de Voice Activity (VAD) - tech ativa bem implementada */}
             {voice.isListening && (
               <div className="flex items-center gap-3 text-[10px]">
-                <div className="text-white/40 w-20">Voice Activity</div>
+                <div className="w-20" style={{ color: theme.textGhost }}>Voice Activity</div>
                 <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
                   <div 
                     className="h-full bg-emerald-400 transition-all duration-75"
@@ -206,7 +209,7 @@ export default function VoicePage() {
           {/* Botão gigante de escuta */}
           <button
             onClick={voice.toggleListening}
-            className={`group w-full h-28 rounded-2xl flex items-center justify-center gap-4 text-lg font-medium tracking-wider transition-all border
+              className={`group flex min-h-28 w-full items-center justify-center gap-4 rounded-lg border px-4 py-5 text-center text-base font-medium transition-all sm:text-lg
               ${voice.isListening
                 ? 'bg-red-500/10 border-red-500/40 text-red-400 hover:bg-red-500/15'
                 : 'bg-white/5 border-white/15 hover:border-white/30 text-white'
@@ -214,19 +217,19 @@ export default function VoicePage() {
           >
             {voice.isListening ? (
               <>
-                <MicOff className="w-8 h-8 group-active:scale-95 transition" />
-                PARAR MONITORAMENTO CONTÍNUO
+                <MicOff className="h-8 w-8 shrink-0 transition group-active:scale-95" />
+                <span className="min-w-0 break-words">PARAR MONITORAMENTO CONTÍNUO</span>
               </>
             ) : (
               <>
-                <Mic className="w-8 h-8 group-active:scale-95 transition" />
-                INICIAR MONITORAMENTO CONTÍNUO
+                <Mic className="h-8 w-8 shrink-0 transition group-active:scale-95" />
+                <span className="min-w-0 break-words">INICIAR MONITORAMENTO CONTÍNUO</span>
               </>
             )}
           </button>
 
           {/* Botões de Teste para provar funcionalidade */}
-          <div className="mt-3 flex gap-2">
+          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
             <button
               onClick={() => {
                 const sample = "TARS, qual é a janela de transferência para Marte?";
@@ -248,7 +251,8 @@ export default function VoicePage() {
                   });
                 }
               }}
-              className="flex-1 text-xs px-3 py-2 rounded-lg border border-white/15 hover:bg-white/5"
+              className="rounded-lg border px-3 py-2 text-xs leading-snug hover:bg-white/5"
+              style={{ borderColor: theme.border }}
               disabled={voice.isListening}
             >
               Testar Fluxo Completo (frase de exemplo)
@@ -256,7 +260,8 @@ export default function VoicePage() {
 
             <button
               onClick={() => voice.testSpeak()}
-              className="flex-1 text-xs px-3 py-2 rounded-lg border border-white/15 hover:bg-white/5"
+              className="rounded-lg border px-3 py-2 text-xs leading-snug hover:bg-white/5"
+              style={{ borderColor: theme.border }}
             >
               Testar TTS com parâmetros atuais
             </button>
@@ -272,7 +277,7 @@ export default function VoicePage() {
                   voice.callJudge(audioLevel);
                 }
               }}
-              className="w-full text-xs px-3 py-2 rounded-lg border border-sky-400/50 text-sky-400 hover:bg-sky-500/10"
+              className="w-full rounded-lg border border-sky-400/50 px-3 py-2 text-xs leading-snug text-sky-300 hover:bg-sky-500/10"
               disabled={!voice.isListening}
             >
               CHAMAR JUIZ AGORA (com VAD atual) — Prova manual do fluxo completo
@@ -295,7 +300,7 @@ export default function VoicePage() {
                         results.map(r => `${r.passed ? '✅' : '❌'} ${r.name}: ${r.details}`).join('\n'));
                 }
               }}
-              className="w-full text-xs px-3 py-2 rounded-lg border border-emerald-400/50 text-emerald-400 hover:bg-emerald-500/10"
+              className="w-full rounded-lg border border-emerald-400/50 px-3 py-2 text-xs leading-snug text-emerald-300 hover:bg-emerald-500/10"
               disabled={!voice.isListening}
             >
               Run Automated Voice Self-Test Suite (3 scenarios)
@@ -409,18 +414,18 @@ export default function VoicePage() {
         </div>
 
         {/* Painel de Status Rápido */}
-        <div className="lg:col-span-5 rounded-2xl border border-white/10 bg-white/[0.015] p-6 flex flex-col">
-          <div className="text-xs uppercase tracking-[0.3em] text-white/40 mb-3">ESTADO ATUAL</div>
+        <div className="void-panel flex min-w-0 flex-col rounded-lg p-6 lg:col-span-5">
+          <div className="panel-kicker mb-3">estado atual</div>
 
           <div className="space-y-4 flex-1">
             <div className="flex items-center gap-3">
               <div className={`w-3 h-3 rounded-full ${voice.isListening ? 'bg-emerald-400 animate-pulse' : 'bg-white/30'}`} />
-              <span className="text-sm">{voice.isListening ? 'Ouvindo ativamente' : 'Em standby'}</span>
+              <span className="text-sm" style={{ color: theme.textSoft }}>{voice.isListening ? 'Ouvindo ativamente' : 'Em standby'}</span>
             </div>
 
             <div className="flex items-center gap-3">
               <div className={`w-3 h-3 rounded-full ${voice.isSpeaking ? 'bg-amber-400' : 'bg-white/30'}`} />
-              <span className="text-sm">{voice.isSpeaking ? 'TARS está falando...' : 'TARS silencioso'}</span>
+              <span className="text-sm" style={{ color: theme.textSoft }}>{voice.isSpeaking ? 'TARS está falando...' : 'TARS silencioso'}</span>
             </div>
 
             {lastDecision && (
@@ -450,17 +455,17 @@ export default function VoicePage() {
       </div>
 
       {/* Transcrição ao vivo + Decisões */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+      <div className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-2">
         {/* Transcrição */}
-        <div className="rounded-2xl border border-white/10 bg-black/30 p-5 min-h-[340px] flex flex-col">
+        <div className="void-panel flex min-w-0 flex-col rounded-lg p-5 xl:min-h-[340px]">
           <div className="flex items-center justify-between mb-3">
-            <div className="text-xs uppercase tracking-[0.3em] text-white/40">TRANSCRIÇÃO AO VIVO</div>
-            <div className="text-[10px] text-white/40">{voice.transcript.length} turnos</div>
+            <div className="panel-kicker">transcrição ao vivo</div>
+            <div className="text-[10px]" style={{ color: theme.textGhost }}>{voice.transcript.length} turnos</div>
           </div>
 
           <div className="flex-1 overflow-y-auto space-y-2 text-sm font-light pr-1 custom-scroll">
             {voice.transcript.length === 0 && (
-              <div className="text-white/40 text-sm pt-8 text-center">Nenhuma fala transcrita ainda.<br />Ative o monitoramento e comece a falar.</div>
+              <div className="pt-8 text-center text-sm" style={{ color: theme.textMute }}>Nenhuma fala transcrita ainda.<br />Ative o monitoramento e comece a falar.</div>
             )}
 
             {voice.transcript.map((entry) => (
@@ -485,15 +490,15 @@ export default function VoicePage() {
         </div>
 
         {/* Log de Decisões do Detector */}
-        <div className="rounded-2xl border border-white/10 bg-black/30 p-5 min-h-[340px] flex flex-col">
+        <div className="void-panel flex min-w-0 flex-col rounded-lg p-5 xl:min-h-[340px]">
           <div className="flex items-center justify-between mb-3">
-            <div className="text-xs uppercase tracking-[0.3em] text-white/40">DECISÕES DO DETECTOR</div>
-            <div className="text-[10px] text-white/40">o que o TARS pensou</div>
+            <div className="panel-kicker">decisões do detector</div>
+            <div className="text-[10px]" style={{ color: theme.textGhost }}>o que o TARS pensou</div>
           </div>
 
           <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scroll text-xs">
             {voice.decisions.length === 0 && (
-              <div className="text-white/40 pt-8 text-center text-sm">O detector ainda não emitiu julgamentos.</div>
+              <div className="pt-8 text-center text-sm" style={{ color: theme.textMute }}>O detector ainda não emitiu julgamentos.</div>
             )}
 
             <AnimatePresence>
@@ -520,9 +525,9 @@ export default function VoicePage() {
       </div>
 
       {/* Seletor de Voz + Controles */}
-      <div className="rounded-2xl border border-white/10 bg-white/[0.015] p-5">
+      <div className="void-panel rounded-lg p-5">
         <div className="flex items-center justify-between mb-3">
-          <div className="text-xs uppercase tracking-[0.3em] text-white/40">VOZ DO TARS</div>
+          <div className="panel-kicker">voz do TARS</div>
           {voice.ttsEngine && (
             <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full border ${
               voice.ttsEngine === 'omnivoice'
@@ -535,11 +540,11 @@ export default function VoicePage() {
         </div>
 
         {/* Voz clonada do OmniVoice (via ponte Kamui) — engine principal */}
-        <div className="flex flex-wrap items-center gap-3 mb-3">
+        <div className="mb-3 flex min-w-0 flex-wrap items-center gap-3">
           <select
             value={voice.selectedOmniVoice || ''}
             onChange={(e) => voice.setOmniVoice(e.target.value)}
-            className="bg-black/40 border border-emerald-500/20 rounded-xl px-4 py-2 text-sm min-w-[280px]"
+            className="min-w-0 w-full rounded-lg border border-emerald-500/20 bg-black/40 px-4 py-2 text-sm sm:w-auto sm:min-w-[280px]"
           >
             {voice.omniVoices.length === 0 && <option value="">OmniVoice offline — usando navegador</option>}
             {voice.omniVoices.map((v) => (
@@ -557,14 +562,14 @@ export default function VoicePage() {
             <Volume2 className="w-4 h-4" /> Testar voz
           </button>
 
-          <div className="text-[11px] text-white/50 ml-2">
+          <div className="min-w-[220px] flex-1 text-[11px]" style={{ color: theme.textMute }}>
             Voz clonada via OmniVoice (Kamui). Cai pro TTS do navegador se o serviço estiver fora.
           </div>
         </div>
 
         {/* Engine de reconhecimento de fala (STT) */}
         <div className="flex flex-wrap items-center gap-3 mb-3 pt-3 border-t border-white/5">
-          <span className="text-[11px] uppercase tracking-wider text-white/40">Reconhecimento (STT)</span>
+          <span className="text-[11px] uppercase" style={{ color: theme.textMute }}>Reconhecimento (STT)</span>
           <div className="flex rounded-xl border border-white/15 overflow-hidden text-xs">
             <button
               onClick={() => voice.setSttEngine('whisper')}
@@ -581,7 +586,7 @@ export default function VoicePage() {
               Navegador
             </button>
           </div>
-          <div className="text-[11px] text-white/40">
+          <div className="text-[11px]" style={{ color: theme.textMute }}>
             {voice.isListening
               ? 'Pare o monitoramento para trocar a engine.'
               : 'Whisper transcreve no servidor (offline, sem Google). Navegador é o fallback.'}
@@ -590,11 +595,11 @@ export default function VoicePage() {
 
         {/* Fallback do navegador — usado só quando o OmniVoice não responde */}
         <details className="text-xs">
-          <summary className="cursor-pointer text-white/40 hover:text-white/60">Voz de fallback (navegador)</summary>
+          <summary className="cursor-pointer" style={{ color: theme.textMute }}>Voz de fallback (navegador)</summary>
           <select
             value={voice.selectedVoiceURI || ''}
             onChange={(e) => voice.setVoice(e.target.value)}
-            className="mt-2 bg-black/40 border border-white/15 rounded-xl px-4 py-2 text-sm min-w-[280px]"
+            className="mt-2 min-w-0 w-full rounded-lg border border-white/15 bg-black/40 px-4 py-2 text-sm sm:w-auto sm:min-w-[280px]"
           >
             {voice.availableVoices.length === 0 && <option>Carregando vozes...</option>}
             {voice.availableVoices.map((v, i) => (
@@ -606,7 +611,7 @@ export default function VoicePage() {
         </details>
       </div>
 
-      <div className="text-[10px] text-white/40 text-center">
+      <div className="text-center text-[10px]" style={{ color: theme.textGhost }}>
         O TARS usa o modelo <span className="font-mono text-white/60">glm-5.1 (z.ai)</span> ou OpenRouter como juiz da necessidade de fala.
       </div>
     </div>

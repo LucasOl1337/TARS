@@ -23,6 +23,7 @@ from typing import Any
 import config
 from brain import dispatch_llm, provider_for_model
 from db import get_state, now_iso, set_state
+from event_store import append_event
 from goals import create_goal, list_goals
 from governance import kill_switch_engaged
 
@@ -132,12 +133,16 @@ async def _propose_goal() -> dict[str, Any] | None:
 async def _tick() -> None:
     _state["beats"] += 1
     _state["last_tick"] = now_iso()
+    hb_id = f"hb_{int(time.time() * 1000)}"
+    append_event("heartbeat.started", {"beat": _state["beats"]}, heartbeat_id=hb_id, source="heartbeat")
 
     if not _cfg(K_ENABLED) or kill_switch_engaged():
         _state["last_action"] = "idle (desligado)" if not _cfg(K_ENABLED) else "idle (kill-switch)"
+        append_event("heartbeat.completed", {"action": _state["last_action"]}, heartbeat_id=hb_id, source="heartbeat")
         return
     if _busy.locked():
         _state["last_action"] = "ocupado (goal em execução)"
+        append_event("heartbeat.completed", {"action": _state["last_action"]}, heartbeat_id=hb_id, source="heartbeat")
         return
 
     # (1) avançar trabalho pendente
@@ -145,6 +150,13 @@ async def _tick() -> None:
         pendings = list_goals(status="pending", limit=1)
         if pendings:
             await _run(pendings[0]["id"], reason="auto_run pending")
+            append_event(
+                "heartbeat.completed",
+                {"action": "auto_run pending", "goal_id": pendings[0]["id"]},
+                heartbeat_id=hb_id,
+                goal_id=pendings[0]["id"],
+                source="heartbeat",
+            )
             return
 
     # (2) propor novo objetivo (quando ocioso, respeitando cooldown)
@@ -165,11 +177,20 @@ async def _tick() -> None:
                 )
                 _state["last_action"] = f"propôs goal: {goal['title']}"
                 # NÃO executa direto — só enfileira. auto_run pega no próximo tick.
+                append_event(
+                    "heartbeat.completed",
+                    {"action": "proposed_goal", "goal_id": goal["id"], "title": goal["title"]},
+                    heartbeat_id=hb_id,
+                    goal_id=goal["id"],
+                    source="heartbeat",
+                )
                 return
             _state["last_action"] = "juiz decidiu ficar quieto"
+            append_event("heartbeat.completed", {"action": _state["last_action"]}, heartbeat_id=hb_id, source="heartbeat")
             return
 
     _state["last_action"] = "nada a fazer"
+    append_event("heartbeat.completed", {"action": _state["last_action"]}, heartbeat_id=hb_id, source="heartbeat")
 
 
 async def _run(goal_id: str, reason: str) -> None:
