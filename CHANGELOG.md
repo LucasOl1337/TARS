@@ -1,44 +1,25 @@
 # Changelog
 
-Todas as notas relevantes da versão atual do TARS ficam aqui.
+## [2026-06-07] - Safe Commit Sync (Multi-Agent + PC vs GitHub Research)
 
-## 2026-06-06 - Snapshot atual
+**Project:** TARS  |  **Branch:** master  |  **State:** docs + grokassets-clean
 
-Commit de referência: `3058d57 chore: snapshot current TARS version`.
+### PC vs GitHub
+- Includes 2026-06-06 docs commit (readme + changelog added)
+- Dirty small + grokassets D from cleanup
+- Local PC snapshot of docs + dedup
 
-### Adicionado
+### Summary
+- docs: add project readme and changelog (recent commit)
+- Grokassets brand deduplication (D files, part of global sweep)
+- patchnotes.md created + changelog updated with 2026-06-07 research
+- Cross: related to BotDE (as infra), nexsales, Kamui, Yume in the active set
 
-- Runtime agêntico com goals, steps, heartbeat, kill-switch e API de trabalho inbound.
-- Event store para registrar eventos operacionais.
-- Harness de validação com fluxos persistidos, componentes executáveis e endpoints dedicados.
-- Páginas novas no dashboard para Engines e Harness.
-- Componente 3D do TARS no dashboard usando Three.js.
-- Voz com decisor de presença, STT via faster-whisper e TTS via OmniVoice por ponte Kamui.
-- Landing page separada em `site/` com assets públicos, build Vite e preview próprio.
-- Ferramentas novas: `assert_check`, `desktop_write` e `project_scan`.
-- Evidências de teste em `output/`, incluindo screenshots desktop/mobile e status de soak.
+See patchnotes.md for research details, multi-agent, files.
 
-### Alterado
+### Files (checkpoint)
+M/T patchnotes, changelog ; D grokassets/* ; the prior docs commit in history.
 
-- Backend expandido com novas rotas para chat, modelos, goals, work API, memória, voz, testes, harness, bridges, eventos, portas e serviços.
-- Dashboard atualizado com navegação, páginas operacionais, tema visual e integração ampliada com a API.
-- Configuração de ambiente documentada em `backend/.env.example`, incluindo GLM, 9Router, bridges, portas e TTS.
-- Scripts `start-tars.ps1` e `stop-tars.ps1` atualizados para operar backend e dashboard nas portas canônicas.
-- Ferramenta `grok_imagine` ajustada para integração com VideoGen/Grok Imagine.
-
-### Removido
-
-- Grande parte dos assets antigos em `grokassets/`.
-- Assets principais remanejados para `site/public/assets/` quando ainda usados pela landing.
-
-### Dependências
-
-- Backend: FastAPI, Uvicorn, HTTPX, python-dotenv, python-multipart, faster-whisper e runtime CUDA opcional para STT.
-- Dashboard: React 19, Vite 6, TypeScript, Three.js, lucide-react, framer-motion e Tailwind.
-- Landing: React 19, Vite 6, TypeScript, Three.js e lucide-react.
-
-### Observações
-
-- O TARS roda sem chave de LLM para operações locais, mas chat real e alguns testes de decisão dependem de provider configurado.
-- Bridges para Yume, Kamui, VideoGen, 9Router e OmniVoice são opcionais e dependem dos respectivos serviços locais.
-- O banco runtime `data/tars.db` continua ignorado pelo Git.
+---
+Prior: the 2026-06-06 docs commit and earlier safes in git.
+<!-- 2026-06-07 safe sync -->

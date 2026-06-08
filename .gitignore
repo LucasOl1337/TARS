@@ -18,6 +18,7 @@ dashboard/dist/
 data/*.db
 data/*.db-wal
 data/*.db-shm
+data/*.db.corrupt-*.bak
 
 # Workspace do agente (artefatos gerados em runtime pelas missões/testes)
 workspace/

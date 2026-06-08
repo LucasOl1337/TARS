@@ -34,6 +34,36 @@ function Free-Port([int]$Port) {
     }
 }
 
+function Get-ListenPid([int]$Port) {
+    $conn = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($conn) { return $conn.OwningProcess }
+    return $null
+}
+
+function Test-BackendHealth {
+    try {
+        $r = Invoke-RestMethod "http://127.0.0.1:$BackendPort/api/tars/health" -TimeoutSec 2
+        if ($r.ok) { return $r }
+    } catch { }
+    return $null
+}
+
+function Test-DashboardHealth {
+    try {
+        $resp = Invoke-WebRequest $DashboardUrl -TimeoutSec 2 -UseBasicParsing
+        if ($resp.StatusCode -ge 200 -and $resp.StatusCode -lt 500) { return $true }
+    } catch { }
+    return $false
+}
+
+function Show-LogTail([string]$Path, [int]$Lines = 60) {
+    if (-not (Test-Path $Path)) { return }
+    Write-Host "  log: $Path" -ForegroundColor DarkGray
+    Get-Content $Path -Tail $Lines | ForEach-Object {
+        Write-Host "    $_" -ForegroundColor DarkGray
+    }
+}
+
 function Test-AutoBrowserDisabled {
     if ($NoBrowser) { return $true }
 
@@ -75,32 +105,55 @@ if ($Force) {
 # ---- backend -------------------------------------------------------------
 Write-Host "Subindo backend TARS em http://127.0.0.1:$BackendPort ..." -ForegroundColor Cyan
 
-# Usando .NET diretamente para esconder completamente a janela do console (compatível com todas versões de PS)
-$psi = New-Object System.Diagnostics.ProcessStartInfo
-$psi.FileName = $Python
-$psi.Arguments = "server.py"
-$psi.WorkingDirectory = $Backend
-$psi.CreateNoWindow = $true
-$psi.UseShellExecute = $false
-$be = [System.Diagnostics.Process]::Start($psi)
+$BackendOut = Join-Path $Logs 'backend.out.log'
+$BackendErr = Join-Path $Logs 'backend.err.log'
+$backendPid = $null
+$r = if (-not $Force) { Test-BackendHealth } else { $null }
 
-# espera o health responder
-$ok = $false
-for ($i = 0; $i -lt 40; $i++) {
-    Start-Sleep -Milliseconds 500
-    try {
-        $r = Invoke-RestMethod "http://127.0.0.1:$BackendPort/api/tars/health" -TimeoutSec 2
-        if ($r.ok) { $ok = $true; break }
-    } catch { }
-}
-if ($ok) {
-    Write-Host "  backend OK (persona=$($r.persona), modelo=$($r.model), llm_ready=$($r.llm_ready))" -ForegroundColor Green
+if ($r) {
+    $backendPid = Get-ListenPid $BackendPort
+    Write-Host "  backend ja estava OK (PID $backendPid, persona=$($r.persona), modelo=$($r.model), llm_ready=$($r.llm_ready))" -ForegroundColor Green
 } else {
-    Write-Host "  backend NAO respondeu - confira a porta $BackendPort (use -Force pra liberar)." -ForegroundColor Red
+    Remove-Item $BackendOut, $BackendErr -ErrorAction SilentlyContinue
+
+    $be = Start-Process `
+        -FilePath $Python `
+        -ArgumentList 'server.py' `
+        -WorkingDirectory $Backend `
+        -WindowStyle Hidden `
+        -RedirectStandardOutput $BackendOut `
+        -RedirectStandardError $BackendErr `
+        -PassThru
+
+    $backendPid = $be.Id
+
+    # espera o health responder
+    $ok = $false
+    for ($i = 0; $i -lt 80; $i++) {
+        Start-Sleep -Milliseconds 500
+        $r = Test-BackendHealth
+        if ($r) { $ok = $true; break }
+        $be.Refresh()
+        if ($be.HasExited) { break }
+    }
+    if ($ok) {
+        $backendPid = Get-ListenPid $BackendPort
+        Write-Host "  backend OK (PID $backendPid, persona=$($r.persona), modelo=$($r.model), llm_ready=$($r.llm_ready))" -ForegroundColor Green
+    } else {
+        $be.Refresh()
+        if ($be.HasExited) {
+            Write-Host "  backend saiu antes de responder (PID $($be.Id), exit=$($be.ExitCode))." -ForegroundColor Red
+        } else {
+            Write-Host "  backend NAO respondeu - confira a porta $BackendPort (use -Force pra liberar)." -ForegroundColor Red
+        }
+        Show-LogTail $BackendErr
+        Show-LogTail $BackendOut 30
+        exit 1
+    }
 }
 
 if ($BackendOnly) {
-    Write-Host "`nBackend rodando (PID $($be.Id)). Health: http://127.0.0.1:$BackendPort/api/tars/health"
+    Write-Host "`nBackend rodando (PID $backendPid). Health: http://127.0.0.1:$BackendPort/api/tars/health"
     return
 }
 
@@ -110,28 +163,37 @@ if (-not (Test-Path (Join-Path $Dashboard 'node_modules'))) {
     Push-Location $Dashboard; npm install --no-audit --no-fund; Pop-Location
 }
 
-Write-Host "Subindo dashboard em http://127.0.0.1:$DashboardPort ..." -ForegroundColor Cyan
-
 $DashboardOut = Join-Path $Logs 'dashboard.out.log'
 $DashboardErr = Join-Path $Logs 'dashboard.err.log'
-Remove-Item $DashboardOut, $DashboardErr -ErrorAction SilentlyContinue
+$dashboardPid = $null
+$dashboardOk = if (-not $Force) { Test-DashboardHealth } else { $false }
 
-$fe = Start-Process `
-    -FilePath 'cmd.exe' `
-    -ArgumentList '/d', '/s', '/c', 'npm run dev' `
-    -WorkingDirectory $Dashboard `
-    -WindowStyle Hidden `
-    -RedirectStandardOutput $DashboardOut `
-    -RedirectStandardError $DashboardErr `
-    -PassThru
+if ($dashboardOk) {
+    $dashboardPid = Get-ListenPid $DashboardPort
+    Write-Host "  dashboard ja estava OK em $DashboardUrl (PID $dashboardPid)" -ForegroundColor Green
+} else {
+    Write-Host "Subindo dashboard em http://127.0.0.1:$DashboardPort ..." -ForegroundColor Cyan
+    Remove-Item $DashboardOut, $DashboardErr -ErrorAction SilentlyContinue
 
-$dashboardOk = $false
-for ($i = 0; $i -lt 40; $i++) {
-    Start-Sleep -Milliseconds 500
-    try {
-        $resp = Invoke-WebRequest $DashboardUrl -TimeoutSec 2 -UseBasicParsing
-        if ($resp.StatusCode -ge 200 -and $resp.StatusCode -lt 500) { $dashboardOk = $true; break }
-    } catch { }
+    $fe = Start-Process `
+        -FilePath 'cmd.exe' `
+        -ArgumentList '/d', '/s', '/c', 'npm run dev' `
+        -WorkingDirectory $Dashboard `
+        -WindowStyle Hidden `
+        -RedirectStandardOutput $DashboardOut `
+        -RedirectStandardError $DashboardErr `
+        -PassThru
+
+    $dashboardPid = $fe.Id
+    for ($i = 0; $i -lt 60; $i++) {
+        Start-Sleep -Milliseconds 500
+        if (Test-DashboardHealth) { $dashboardOk = $true; break }
+        $fe.Refresh()
+        if ($fe.HasExited) { break }
+    }
+    if ($dashboardOk) {
+        $dashboardPid = Get-ListenPid $DashboardPort
+    }
 }
 
 if ($dashboardOk -and -not (Test-AutoBrowserDisabled)) {
@@ -139,11 +201,13 @@ if ($dashboardOk -and -not (Test-AutoBrowserDisabled)) {
 } elseif ($dashboardOk) {
     Write-Host "  browser automatico desativado; dashboard disponivel em $DashboardUrl" -ForegroundColor DarkGray
 } else {
-    Write-Host "  dashboard NAO respondeu em $DashboardUrl - confira o processo npm/vite (PID $($fe.Id))." -ForegroundColor Red
-    Write-Host "  logs: $DashboardOut / $DashboardErr" -ForegroundColor DarkGray
+    Write-Host "  dashboard NAO respondeu em $DashboardUrl - confira o processo npm/vite (PID $dashboardPid)." -ForegroundColor Red
+    Show-LogTail $DashboardErr
+    Show-LogTail $DashboardOut 30
+    exit 1
 }
 
 Write-Host "`nTARS no ar:" -ForegroundColor Green
-Write-Host "  backend   : http://127.0.0.1:$BackendPort/api/tars/health  (PID $($be.Id))"
-Write-Host "  dashboard : $DashboardUrl  (PID $($fe.Id))"
+Write-Host "  backend   : http://127.0.0.1:$BackendPort/api/tars/health  (PID $backendPid)"
+Write-Host "  dashboard : $DashboardUrl  (PID $dashboardPid)"
 Write-Host "`nPara parar: .\stop-tars.ps1" -ForegroundColor DarkGray

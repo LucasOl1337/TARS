@@ -6,8 +6,10 @@ semeado com sua persona default de companion de exploração espacial.
 from __future__ import annotations
 
 import json
+import shutil
 import sqlite3
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 from config import DB_PATH
@@ -198,15 +200,58 @@ def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _is_malformed_database_error(exc: BaseException) -> bool:
+    message = str(exc).lower()
+    return (
+        isinstance(exc, sqlite3.DatabaseError)
+        and (
+            "database disk image is malformed" in message
+            or "file is not a database" in message
+        )
+    )
+
+
+def _next_corrupt_backup_path() -> Path:
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    candidate = DB_PATH.with_name(f"{DB_PATH.name}.corrupt-{stamp}.bak")
+    index = 1
+    while candidate.exists():
+        candidate = DB_PATH.with_name(f"{DB_PATH.name}.corrupt-{stamp}-{index}.bak")
+        index += 1
+    return candidate
+
+
+def _quarantine_corrupt_db() -> str | None:
+    if not DB_PATH.exists():
+        return None
+
+    backup = _next_corrupt_backup_path()
+    shutil.copy2(DB_PATH, backup)
+    DB_PATH.unlink()
+
+    for suffix in ("-wal", "-shm"):
+        sidecar = DB_PATH.with_name(f"{DB_PATH.name}{suffix}")
+        if sidecar.exists():
+            sidecar_backup = backup.with_name(f"{backup.name}{suffix}")
+            shutil.copy2(sidecar, sidecar_backup)
+            sidecar.unlink()
+
+    return str(backup)
+
+
 def get_conn() -> sqlite3.Connection:
     conn = sqlite3.connect(str(DB_PATH), timeout=10.0)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
-    # WAL deixa leitura concorrente segura (poller + chat + echoes ao mesmo
-    # tempo) e busy_timeout evita "database is locked" sob concorrência.
-    conn.execute("PRAGMA journal_mode = WAL")
-    conn.execute("PRAGMA busy_timeout = 5000")
-    return conn
+    try:
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA foreign_keys = ON")
+        # WAL deixa leitura concorrente segura (poller + chat + echoes ao mesmo
+        # tempo) e busy_timeout evita "database is locked" sob concorrência.
+        conn.execute("PRAGMA journal_mode = WAL")
+        conn.execute("PRAGMA busy_timeout = 5000")
+        return conn
+    except Exception:
+        conn.close()
+        raise
 
 
 def row_to_persona(row: sqlite3.Row) -> dict[str, Any]:
@@ -346,12 +391,38 @@ def _sync_default_persona_tools(conn: sqlite3.Connection) -> None:
 
 
 def init_db() -> None:
-    conn = get_conn()
+    recovered_backup: str | None = None
+    try:
+        conn = get_conn()
+    except sqlite3.DatabaseError as exc:
+        if not _is_malformed_database_error(exc):
+            raise
+        recovered_backup = _quarantine_corrupt_db()
+        print(
+            "[TARS] banco SQLite corrompido colocado em quarentena; "
+            f"recriando DB ativo. backup={recovered_backup}"
+        )
+        conn = get_conn()
     try:
         conn.executescript(SCHEMA_SQL)
         conn.commit()
         _seed_default_persona(conn)
         _sync_default_persona_tools(conn)
+        if recovered_backup:
+            conn.execute(
+                "INSERT INTO agent_state (key, value, updated_at) VALUES (?,?,?) "
+                "ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+                (
+                    "last_db_recovery",
+                    json.dumps({
+                        "reason": "sqlite-malformed",
+                        "backup": recovered_backup,
+                        "at": now_iso(),
+                    }),
+                    now_iso(),
+                ),
+            )
+            conn.commit()
     finally:
         conn.close()
 
