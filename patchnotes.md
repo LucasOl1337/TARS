@@ -1,39 +1,70 @@
-# Patch Notes - 2026-06-07 (docs + grokassets-clean) Safe Sync (PC vs GitHub Research)
+# Patchnotes - TARS
 
-**Project:** TARS (master branch; project with start/stop, dashboard?, backend, data; recent docs focus)
-**Path:** C:\projetos\TARS
-**Branch:** master
-**Generated:** 2026-06-07
-**State:** docs addition (06-06) + small dirty + grokassets cleanup likely | Last prior safe ~2026-06-06 docs
+Generated: 2026-06-08 23:46:34 -03:00
+Repository: $repo
+Branch: $branch
+Local HEAD: $head
+Upstream: $upstream
+Commit prepared as: $commitMsg
 
-## Executive Summary
-Research: git status (small dirty 6 lines, likely mds or scripts), git log (ab623db 2026-06-06 "docs: add project readme and changelog"), fetch vs origin, status. No heavy code in recent window; focus on docs + the ecosystem grokassets dedup.
+## Executive summary
 
-PC vs GH: master with recent docs commit + uncommitted (mds/grokassets or scripts). Local is the PC snapshot.
+This safe commit records the current active local state detected in the last 24 hours. The repository was compared against its configured GitHub/upstream branch when available. The commit intentionally separates useful source, documentation, tests, and evidence from generated local runtime material such as dependency folders, browser sessions, caches, database journals, temporary logs, and private environment files.
 
-## Local vs GitHub
-HEAD includes the 06-06 docs commit; working tree has additional small mutations + deletes from cleanup sweep.
+## Local versus GitHub
 
-### Changes (inferred + from prior batch)
-- Recent commit: docs: add project readme and changelog (2026-06-06)
-- Current dirty: small (scripts? mds?)
-- Grokassets D (brand assets, consistent with peers: AutoWebGame, LojaSync, LUCA etc.)
-- M patchnotes (new), changelog (update)
+Remote-only commits: 0; local-only commits: 0.
 
-## Multi-Agent
-Parallel agents added docs/readme/changelog to TARS recently, while cleanup agents removed grokassets duplicates across the board, and other codex agents worked on related (BotDE, nexsales gateway, Yume, Kamui catalog). Current tree is PC canonical (docs + cleanup).
+### Remote-only commits
 
-Staged: mds + deletes + any small dirty.
+``text
+No remote-only commits found or no upstream available.
+``
 
-## Conclusion
-PC state (docs + cleanup) vs GH documented. Safe commit on master.
+### Local-only commits
 
-**Commit:** `2026-06-07 (docs) safe commit` or `2026-06-07 (grokassets-clean) safe commit`
+``text
+No local-only commits found or no upstream available.
+``
 
-Push master.
+## Safe working-tree snapshot before these notes
 
-See changelog. Prior in git (the 06-06 docs commit itself is recent).
+Total Git status entries detected, including untracked: 1
+Safe entries selected for commit consideration before notes: 1
 
----
-This patchnotes.md created as part of 2026-06-07 safe (no prior existed or was minimal).
-(End 2026-06-07.)
+``text
+ M CHANGELOG.md
+ M patchnotes.md
+?? .codegraph/graph.html
+?? .wrangler/cache/pages.json
+``
+
+## Tracked diff summary before these notes
+
+``text
+warning: in the working copy of 'CHANGELOG.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'patchnotes.md', LF will be replaced by CRLF the next time Git touches it
+ CHANGELOG.md  | 257 ++++++++++++++++++++++++++++++++++++++++++++++++++++----
+ patchnotes.md | 265 ++++++++++++++++++++++++++++++++++++++++++++++++++++------
+ 2 files changed, 477 insertions(+), 45 deletions(-)
+``
+
+## Tracked file changes before these notes
+
+``text
+warning: in the working copy of 'CHANGELOG.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'patchnotes.md', LF will be replaced by CRLF the next time Git touches it
+M	CHANGELOG.md
+M	patchnotes.md
+``
+
+## Conflict and parallel-agent handling
+
+- Fetched remotes before preparing the commit when a remote was configured.
+- Preserved the current branch and local working tree instead of resetting or discarding parallel agent work.
+- Excluded generated dependency/runtime folders and local secrets from staging to keep the commit safe.
+- If the branch was behind GitHub, the follow-up push step should rebase or require conflict resolution before publishing.
+
+## Validation status
+
+No project-specific test suite was run automatically from this batch operation. The notes are based on Git metadata, file status, and local versus remote comparison.
