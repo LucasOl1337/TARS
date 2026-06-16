@@ -1,4 +1,42 @@
-# Changelog - TARS
+# Changelog
+## [2026-06-16] - Safe Commit Sync (Multi-Agent + PC vs GitHub Research)
+
+**Project:** TARS  |  **Branch:** master  |  **State:** active
+
+### PC vs GitHub at Research Time
+- Local HEAD: a63958a (C:\Projetos\TARS)
+- Remote (origin): a63958a
+- Ahead/Behind: +0 / -0
+- 24h commits: 0
+- Uncommitted entries (porcelain): 12
+
+### Summary of Changes Being Committed
+assets: luca-endpoints-catalog-validation.png, luca-prod-endpoints-nav.png, luca-prod-home.png ... (8 total) | root: .codegraph/graph.html, .playwright-cli/, .playwright-mcp/ ... (33 total)
+
+### 24h Commit Subjects (local)
+- (none)
+
+### Files Changed (working tree preview)
+```text
+?? .codegraph/graph.html
+?? .playwright-cli/
+?? .playwright-mcp/
+?? .wrangler/
+?? luca-endpoints-catalog-validation.png
+?? luca-prod-endpoints-nav.png
+?? luca-prod-home.png
+?? luca-prod-sompo-mission.png
+?? prod-heartbeat-governance-panel.png
+?? prod-heartbeat-governance.png
+?? prod-home-governance.png
+?? prod-post-lock-cta.png
+```
+
+See patchnotes.md for full divergence tables, categorized research, remotes, fetch log, and multi-agent reconciliation details.
+
+---
+Prior changelog entries preserved:
+
 
 Generated: 2026-06-08 23:46:34 -03:00
 
@@ -64,3 +102,8 @@ No remote-only commits found or no upstream available.
 ``text
 No local-only commits found or no upstream available.
 ``
+
+
+### Follow-up (2026-06-16 09:10:04)
+CHANGELOG.md
+
