@@ -1,0 +1,76 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - img [ref=e8]
+      - generic [ref=e12]:
+        - heading "LUC.AI" [level=1] [ref=e13]
+        - generic [ref=e14]: centro operacional
+    - navigation [ref=e15]:
+      - button "Início" [ref=e16] [cursor=pointer]:
+        - img [ref=e17]
+        - generic [ref=e20]: Início
+      - button "Operacional" [ref=e21] [cursor=pointer]:
+        - img [ref=e22]
+        - generic [ref=e27]: Operacional
+      - button "Agentes" [ref=e28] [cursor=pointer]:
+        - img [ref=e29]
+        - generic [ref=e39]: Agentes
+      - button "Database" [ref=e40] [cursor=pointer]:
+        - img [ref=e41]
+        - generic [ref=e45]: Database
+      - button "Heartbeat" [ref=e46] [cursor=pointer]:
+        - img [ref=e47]
+        - generic [ref=e49]: Heartbeat
+      - button "Histórico" [ref=e50] [cursor=pointer]:
+        - img [ref=e51]
+        - generic [ref=e55]: Histórico
+    - generic [ref=e59]: conectando cloud
+    - button [ref=e60] [cursor=pointer]:
+      - img [ref=e61]
+  - main [ref=e63]:
+    - generic [ref=e64]:
+      - generic [ref=e65]: as três camadas do conhecimento
+      - generic [ref=e67]: glm 5.1 cloud
+    - generic [ref=e71]:
+      - generic [ref=e72]:
+        - generic [ref=e73]:
+          - heading "Database" [level=1] [ref=e74]
+          - paragraph [ref=e75]: database indisponivel
+        - link "índice obsidian" [ref=e76] [cursor=pointer]:
+          - /url: obsidian://open?vault=LUCA-AI&file=Index
+          - img [ref=e77]
+          - text: índice obsidian
+      - generic [ref=e81]:
+        - button "01 0 pesquisa bruta" [ref=e82] [cursor=pointer]:
+          - generic [ref=e83]:
+            - generic [ref=e84]: "01"
+            - generic [ref=e85]: "0"
+          - strong [ref=e86]: pesquisa bruta
+        - button "02 0 processamento" [ref=e87] [cursor=pointer]:
+          - generic [ref=e88]:
+            - generic [ref=e89]: "02"
+            - generic [ref=e90]: "0"
+          - strong [ref=e91]: processamento
+        - button "03 0 pós-processamento" [ref=e92] [cursor=pointer]:
+          - generic [ref=e93]:
+            - generic [ref=e94]: "03"
+            - generic [ref=e95]: "0"
+          - strong [ref=e96]: pós-processamento
+      - generic [ref=e97]:
+        - complementary [ref=e98]:
+          - generic [ref=e99]:
+            - generic [ref=e100]: camada 03
+            - heading "pós-processamento" [level=3] [ref=e101]
+            - paragraph [ref=e102]: Conteúdo claro e aprovado para pessoas de diferentes áreas.
+            - generic [ref=e103]:
+              - generic [ref=e104]:
+                - strong [ref=e105]: vazio
+                - text: status
+              - generic [ref=e106]:
+                - strong [ref=e107]: visível após curadoria
+                - text: visibilidade
+            - link "abrir no obsidian" [ref=e108] [cursor=pointer]:
+              - /url: obsidian://open?vault=LUCA-AI&file=Camada+03+-+Canvas
+        - generic [ref=e110]:
+          - heading "camada vazia" [level=4] [ref=e111]
+          - paragraph [ref=e112]: aguardando preenchimento

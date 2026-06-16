@@ -1,0 +1,95 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - img [ref=e8]
+      - generic [ref=e12]:
+        - heading "LUC.AI" [level=1] [ref=e13]
+        - generic [ref=e14]: centro operacional
+    - navigation [ref=e15]:
+      - button "Início" [ref=e16] [cursor=pointer]:
+        - img [ref=e17]
+        - generic [ref=e20]: Início
+      - button "Operacional" [ref=e21] [cursor=pointer]:
+        - img [ref=e22]
+        - generic [ref=e27]: Operacional
+      - button "Agentes" [ref=e28] [cursor=pointer]:
+        - img [ref=e29]
+        - generic [ref=e39]: Agentes
+      - button "Database" [ref=e40] [cursor=pointer]:
+        - img [ref=e41]
+        - generic [ref=e45]: Database
+      - button "Ferramentas" [ref=e46] [cursor=pointer]:
+        - img [ref=e47]
+        - generic [ref=e49]: Ferramentas
+      - button "Endpoints" [ref=e50] [cursor=pointer]:
+        - img [ref=e51]
+        - generic [ref=e53]: Endpoints
+      - button "Heartbeat" [ref=e54] [cursor=pointer]:
+        - img [ref=e55]
+        - generic [ref=e57]: Heartbeat
+      - button "Histórico" [ref=e58] [cursor=pointer]:
+        - img [ref=e59]
+        - generic [ref=e63]: Histórico
+    - generic [ref=e67]: conectando cloud
+    - button [ref=e68] [cursor=pointer]:
+      - img [ref=e69]
+  - main [ref=e71]:
+    - generic [ref=e72]:
+      - generic [ref=e73]: o pulso vital do sistema
+      - generic [ref=e75]: glm 5.1 cloud
+    - generic [ref=e79]:
+      - generic [ref=e80]:
+        - generic [ref=e81]:
+          - img [ref=e83]
+          - generic [ref=e85]:
+            - heading "Heartbeat" [level=1] [ref=e86]
+            - paragraph [ref=e87]: o pulso vital do sistema
+        - generic [ref=e88]:
+          - button "play" [ref=e89] [cursor=pointer]:
+            - img [ref=e90]
+            - text: play
+          - button "pause" [ref=e92] [cursor=pointer]:
+            - img [ref=e93]
+            - text: pause
+          - button "diagnóstico" [ref=e96] [cursor=pointer]:
+            - img [ref=e97]
+            - text: diagnóstico
+          - button "limpar" [ref=e100] [cursor=pointer]:
+            - img [ref=e101]
+            - text: limpar
+      - generic [ref=e104]:
+        - generic [ref=e105]:
+          - text: monitor
+          - strong [ref=e108]: stale
+        - generic [ref=e109]:
+          - text: último tick
+          - strong [ref=e110]: n/a
+        - generic [ref=e111]:
+          - text: eventos
+          - strong [ref=e114]: "0"
+          - paragraph [ref=e115]: idle
+        - generic [ref=e116]:
+          - text: goals
+          - generic [ref=e117]:
+            - strong [ref=e118]: "0"
+            - generic [ref=e119]: abertos
+          - paragraph [ref=e120]: 0 pendentes • 0 em execução
+      - generic [ref=e121]:
+        - generic [ref=e122]:
+          - strong [ref=e123]: agentes
+          - generic [ref=e124]:
+            - generic [ref=e125]:
+              - generic [ref=e126]: Supervisor
+              - generic [ref=e127]: standby
+            - generic [ref=e128]:
+              - generic [ref=e129]: Planejador
+              - generic [ref=e130]: idle
+            - generic [ref=e131]:
+              - generic [ref=e132]: Pesquisador
+              - generic [ref=e133]: idle
+            - generic [ref=e134]:
+              - generic [ref=e135]: Designer
+              - generic [ref=e136]: idle
+        - generic [ref=e138]:
+          - paragraph [ref=e139]: $ heartbeat monitor stale
+          - paragraph [ref=e140]: sem eventos recentes...

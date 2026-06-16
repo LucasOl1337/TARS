@@ -1,0 +1,80 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - img [ref=e8]
+      - generic [ref=e12]:
+        - heading "LUC.AI" [level=1] [ref=e13]
+        - generic [ref=e14]: centro operacional
+    - navigation [ref=e15]:
+      - button "Início" [ref=e16] [cursor=pointer]:
+        - img [ref=e17]
+        - generic [ref=e20]: Início
+      - button "Operacional" [ref=e21] [cursor=pointer]:
+        - img [ref=e22]
+        - generic [ref=e27]: Operacional
+      - button "Agentes" [ref=e28] [cursor=pointer]:
+        - img [ref=e29]
+        - generic [ref=e39]: Agentes
+      - button "Database" [ref=e40] [cursor=pointer]:
+        - img [ref=e41]
+        - generic [ref=e45]: Database
+      - button "Endpoints" [ref=e46] [cursor=pointer]:
+        - img [ref=e47]
+        - generic [ref=e49]: Endpoints
+      - button "Heartbeat" [ref=e50] [cursor=pointer]:
+        - img [ref=e51]
+        - generic [ref=e53]: Heartbeat
+      - button "Histórico" [ref=e54] [cursor=pointer]:
+        - img [ref=e55]
+        - generic [ref=e59]: Histórico
+    - generic [ref=e63]: conectando cloud
+    - button [ref=e64] [cursor=pointer]:
+      - img [ref=e65]
+  - main [ref=e67]:
+    - generic [ref=e68]:
+      - generic [ref=e69]: apresentação do centro
+      - generic [ref=e71]: glm 5.1 cloud
+    - generic [ref=e75]:
+      - generic [ref=e76]:
+        - generic [ref=e77]:
+          - generic:
+            - img
+            - img
+            - generic:
+              - img "LUCA owl"
+            - img
+        - generic [ref=e79]:
+          - heading "LUC.AI" [level=1] [ref=e80]
+          - paragraph [ref=e81]: sompo sprint 2
+          - paragraph [ref=e82]: Centro operacional para transformar CSV, telemetria rural e risco de sinistro em um canvas executivo apresentável.
+        - generic [ref=e83]:
+          - button "Centro Operacional" [ref=e84] [cursor=pointer]
+          - button "Rodar Caso Sompo" [ref=e85] [cursor=pointer]
+      - generic [ref=e86]:
+        - generic [ref=e88]:
+          - img [ref=e91]
+          - generic [ref=e101]:
+            - generic [ref=e102]: "0"
+            - generic [ref=e103]: Agentes
+            - generic [ref=e104]: corujas no esquadrão
+        - generic [ref=e106]:
+          - img [ref=e109]
+          - generic [ref=e111]:
+            - generic [ref=e112]: —
+            - generic [ref=e113]: Missão
+            - generic [ref=e114]: aguardando comando
+        - generic [ref=e116]:
+          - img [ref=e119]
+          - generic [ref=e123]:
+            - generic [ref=e124]: "0"
+            - generic [ref=e125]: Database
+            - generic [ref=e126]: itens registrados
+        - generic [ref=e128]:
+          - img [ref=e131]
+          - generic [ref=e133]:
+            - generic [ref=e134]: cloud
+            - generic [ref=e135]: Runtime
+            - generic [ref=e136]: glm 5.1 real
+      - generic [ref=e137]:
+        - paragraph [ref=e139]: Conectando ao runtime cloud para sincronizar estado, agentes e heartbeat.
+        - generic [ref=e140]: conectando

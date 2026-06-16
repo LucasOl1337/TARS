@@ -1,70 +1,88 @@
-# Patchnotes - TARS
+# Patch Notes - 2026-06-16 Safe Sync (PC vs GitHub Research)
 
-Generated: 2026-06-08 23:46:34 -03:00
-Repository: $repo
-Branch: $branch
-Local HEAD: $head
-Upstream: $upstream
-Commit prepared as: $commitMsg
+**Project:** TARS
+**Path:** C:\Projetos\TARS
+**Branch:** master (tracking: origin/master)
+**Generated:** 2026-06-16 09:06:26
+**State:** active | Dirty entries: 12 | Ahead/Behind: +0 / -0
 
-## Executive summary
+## Executive Summary
 
-This safe commit records the current active local state detected in the last 24 hours. The repository was compared against its configured GitHub/upstream branch when available. The commit intentionally separates useful source, documentation, tests, and evidence from generated local runtime material such as dependency folders, browser sessions, caches, database journals, temporary logs, and private environment files.
+Batch safe commit for projects with filesystem activity in the last 24 hours. Research performed locally via `git fetch`, `rev-list`, `diff`, and `status --porcelain` comparing the current PC working tree and HEAD against GitHub `origin` when configured.
 
-## Local versus GitHub
+This snapshot captures parallel agent work (Grok, Claude, Codex, sub-agents) reconciled into one authoritative PC state. Runtime artifacts (`node_modules`, browser profiles, `__pycache__`, `.codegraph/`, `.playwright-mcp/`, `.wrangler/`, private `.env` files, temp scripts) are excluded from staging.
 
-Remote-only commits: 0; local-only commits: 0.
+**Commit prepared as:** `2026-06-16+active safe commit`
 
-### Remote-only commits
+## Local PC vs GitHub Comparison
 
-``text
-No remote-only commits found or no upstream available.
-``
+| Aspect | PC (Local) | GitHub (origin) | Notes |
+|--------|------------|-----------------|-------|
+| HEAD | a63958a | a63958a | |
+| Branch | master | origin/master | |
+| Ahead / Behind | +0 | -0 | |
+| Working tree | dirty (12 entries) | remote assumed clean | |
+| Remote URL | https://github.com/LucasOl1337/TARS.git | | |
 
-### Local-only commits
+### Commits only on PC (ahead of origin)
+```text
+(none)
+```
 
-``text
-No local-only commits found or no upstream available.
-``
+### Commits only on GitHub (behind local)
+```text
+(none)
+```
 
-## Safe working-tree snapshot before these notes
+### Recent 24h commits (local history)
+```text
+(none in last 24h)
+```
 
-Total Git status entries detected, including untracked: 1
-Safe entries selected for commit consideration before notes: 1
-
-``text
- M CHANGELOG.md
- M patchnotes.md
+### Pending working tree (porcelain)
+```text
 ?? .codegraph/graph.html
-?? .wrangler/cache/pages.json
-``
+?? .playwright-cli/
+?? .playwright-mcp/
+?? .wrangler/
+?? luca-endpoints-catalog-validation.png
+?? luca-prod-endpoints-nav.png
+?? luca-prod-home.png
+?? luca-prod-sompo-mission.png
+?? prod-heartbeat-governance-panel.png
+?? prod-heartbeat-governance.png
+?? prod-home-governance.png
+?? prod-post-lock-cta.png
+```
 
-## Tracked diff summary before these notes
+### Diff stat vs upstream
+```text
+(no diff stat)
+```
 
-``text
-warning: in the working copy of 'CHANGELOG.md', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'patchnotes.md', LF will be replaced by CRLF the next time Git touches it
- CHANGELOG.md  | 257 ++++++++++++++++++++++++++++++++++++++++++++++++++++----
- patchnotes.md | 265 ++++++++++++++++++++++++++++++++++++++++++++++++++++------
- 2 files changed, 477 insertions(+), 45 deletions(-)
-``
+### Change categorization
+assets: luca-endpoints-catalog-validation.png, luca-prod-endpoints-nav.png, luca-prod-home.png ... (8 total) | root: .codegraph/graph.html, .playwright-cli/, .playwright-mcp/ ... (33 total)
 
-## Tracked file changes before these notes
+### git fetch output (abridged)
+```text
+(no remote or fetch skipped)
+```
 
-``text
-warning: in the working copy of 'CHANGELOG.md', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'patchnotes.md', LF will be replaced by CRLF the next time Git touches it
-M	CHANGELOG.md
-M	patchnotes.md
-``
+## Multi-Agent Parallel Work & Conflict Handling
 
-## Conflict and parallel-agent handling
+Multiple agents may have edited the same repositories concurrently. Reconciliation strategy for this batch:
 
-- Fetched remotes before preparing the commit when a remote was configured.
-- Preserved the current branch and local working tree instead of resetting or discarding parallel agent work.
-- Excluded generated dependency/runtime folders and local secrets from staging to keep the commit safe.
-- If the branch was behind GitHub, the follow-up push step should rebase or require conflict resolution before publishing.
+1. `git fetch origin` to load latest GitHub state.
+2. If behind (0 commits): attempt `git pull --rebase origin master`; on conflict, prefer **local (--ours)** for source/docs/data that represent this machine's authoritative state.
+3. Generate `patchnotes.md` and `changelog.md` **before** staging.
+4. Stage only **safe** paths (exclude dependency/runtime/cache/secret artifacts).
+5. Commit with uniform message `2026-06-16+active safe commit` and push when remote exists.
 
-## Validation status
+Cross-project overlaps observed in this batch: shared `grokassets/` pruning (TerminalDE, The-Last-Arrow, VideoGen), Maestro/WhatsApp state (Sennin), persona/tool expansion (Yume, LUCA-AI), Kamui Shikigami→Sharingan refactor, VideoGen channel-factory pipeline, YumeHUB hub memory/import controllers.
 
-No project-specific test suite was run automatically from this batch operation. The notes are based on Git metadata, file status, and local versus remote comparison.
+## Safe Staging Policy
+
+**Included:** source, tests, docs, DocsDev, safe data/json, evidence screenshots, patchnotes/changelog.
+
+**Excluded:** node_modules, venvs, __pycache__, .codegraph/, .playwright-mcp/, .wrangler/, .env*, NUL, .tmp-* scratch scripts, terminals/, browser session caches.
+

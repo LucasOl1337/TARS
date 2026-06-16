@@ -1,0 +1,132 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - img [ref=e8]
+      - generic [ref=e12]:
+        - heading "LUC.AI" [level=1] [ref=e13]
+        - generic [ref=e14]: centro operacional
+    - navigation [ref=e15]:
+      - button "Início" [ref=e16] [cursor=pointer]:
+        - img [ref=e17]
+        - generic [ref=e20]: Início
+      - button "Operacional" [ref=e21] [cursor=pointer]:
+        - img [ref=e22]
+        - generic [ref=e27]: Operacional
+      - button "Agentes" [ref=e28] [cursor=pointer]:
+        - img [ref=e29]
+        - generic [ref=e39]: Agentes
+      - button "Database" [ref=e40] [cursor=pointer]:
+        - img [ref=e41]
+        - generic [ref=e45]: Database
+      - button "Heartbeat" [ref=e46] [cursor=pointer]:
+        - img [ref=e47]
+        - generic [ref=e49]: Heartbeat
+      - button "Histórico" [ref=e50] [cursor=pointer]:
+        - img [ref=e51]
+        - generic [ref=e55]: Histórico
+    - generic [ref=e59]: glm 5.1 cloud
+    - button [ref=e60] [cursor=pointer]:
+      - img [ref=e61]
+  - main [ref=e63]:
+    - generic [ref=e64]:
+      - generic [ref=e65]: centro operacional da missão
+      - generic [ref=e67]: glm 5.1 cloud
+    - generic [ref=e138]:
+      - generic [ref=e139]:
+        - button "desligado" [ref=e140] [cursor=pointer]:
+          - img [ref=e141]
+          - generic [ref=e143]: desligado
+        - button "heartbeat" [ref=e146] [cursor=pointer]:
+          - generic [ref=e150]: heartbeat
+        - button "database" [ref=e152] [cursor=pointer]:
+          - img "database" [ref=e154]
+          - generic [ref=e156]: database
+        - button "maestro" [ref=e158] [cursor=pointer]:
+          - img "maestro" [ref=e160]
+          - generic [ref=e162]: maestro
+        - button "transformador de missão" [ref=e164] [cursor=pointer]:
+          - img "transformador de missão" [ref=e166]
+          - generic [ref=e168]: transformador de missão
+        - button "planejador" [ref=e170] [cursor=pointer]:
+          - img "planejador" [ref=e172]
+          - generic [ref=e174]: planejador
+        - button "pesquisador" [ref=e176] [cursor=pointer]:
+          - img "pesquisador" [ref=e178]
+          - generic [ref=e180]: pesquisador
+        - button "designer" [ref=e182] [cursor=pointer]:
+          - img "designer" [ref=e184]
+          - generic [ref=e186]: designer
+      - generic [ref=e187]:
+        - generic [ref=e189]:
+          - generic [ref=e190]:
+            - img
+            - heading "Supervisor" [level=3] [ref=e192]
+            - generic [ref=e193]: ready
+            - button "copiar log do supervisor" [ref=e194] [cursor=pointer]:
+              - img [ref=e195]
+              - text: copiar
+          - generic [ref=e198]:
+            - paragraph [ref=e199]: logs do agente
+            - paragraph [ref=e200]: "cloud: supervisor conectado ao GLM 5.1"
+            - paragraph [ref=e201]: "[18:07:09] heartbeat: monitor ligado"
+            - paragraph [ref=e202]: "[18:07:09] heartbeat: monitor pausado"
+            - paragraph [ref=e203]: "[18:12:32] mission: mauda um salve no chat"
+            - paragraph [ref=e204]: "[18:12:51] chat: mauda um salve no chat"
+            - paragraph [ref=e205]: "[18:13:25] state: missao resetada"
+            - paragraph [ref=e206]: "[18:13:44] mission: mauda um salve no chat"
+            - paragraph [ref=e207]: "[18:13:51] chat: mauda um salve no chat"
+            - paragraph [ref=e208]: "[18:30:38] mission: manda umas dicas de culinaria"
+            - paragraph [ref=e209]: "[18:31:02] chat: manda umas dicas de culinaria"
+            - paragraph [ref=e210]: "[19:36:57] state: missao resetada"
+            - paragraph [ref=e211]: "[19:36:57] mission: chat seguradora"
+            - paragraph [ref=e212]: "[19:38:32] mission: Caso Sompo rural"
+            - paragraph [ref=e213]: "[19:38:33] mission: Caso Sompo rural"
+            - paragraph [ref=e214]: "[19:38:37] mission: Caso Sompo rural"
+            - paragraph [ref=e215]: "[19:39:02] mission: chat multiagente rural"
+            - paragraph [ref=e216]: "[19:39:44] chat: chat multiagente rural"
+            - paragraph [ref=e217]: "[19:42:03] mission: Briefing Sompo telemetria rural"
+            - paragraph [ref=e218]: "[19:42:03] harness.smoke"
+            - paragraph [ref=e219]: "[19:44:03] state: missao resetada"
+            - paragraph [ref=e220]: "[20:40:15] state: missao resetada"
+            - paragraph [ref=e221]: "[20:40:17] mission: Sompo telemetria rural"
+            - paragraph [ref=e222]: $ _
+        - generic [ref=e224]:
+          - generic [ref=e225]:
+            - heading "Canvas da Missão" [level=3] [ref=e226]
+            - generic [ref=e227]: aguardando missão
+          - generic [ref=e229]:
+            - generic:
+              - img
+              - img
+              - generic:
+                - img "LUCA owl"
+              - img
+            - paragraph [ref=e230]: O canvas vai montar os resultados da missão aqui.
+        - generic [ref=e232]:
+          - generic [ref=e233]:
+            - img
+            - heading "Comunicação" [level=3] [ref=e235]
+            - generic [ref=e236]: glm
+            - button "copiar log do chat" [ref=e237] [cursor=pointer]:
+              - img [ref=e238]
+              - text: copiar
+          - generic [ref=e242]:
+            - img [ref=e243]
+            - paragraph [ref=e245]: As mensagens dos agentes aparecerão aqui.
+      - generic [ref=e246]:
+        - generic [ref=e247]:
+          - textbox "Descreva a missão" [ref=e249]:
+            - /placeholder: Descreva a missão para os agentes...
+          - button "Ativar" [disabled] [ref=e250]:
+            - img [ref=e251]
+            - text: Ativar
+        - generic [ref=e253]:
+          - generic [ref=e254]:
+            - generic [ref=e255]: pronta para nova missão
+            - button "briefing Sompo" [ref=e256] [cursor=pointer]:
+              - img [ref=e257]
+              - text: briefing Sompo
+          - generic [ref=e260]:
+            - generic [ref=e261]: online
+            - generic [ref=e263]: db 0
+            - generic [ref=e265]: idle

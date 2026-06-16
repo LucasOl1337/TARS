@@ -1,0 +1,230 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - img [ref=e8]
+      - generic [ref=e12]:
+        - heading "LUC.AI" [level=1] [ref=e13]
+        - generic [ref=e14]: centro operacional
+    - navigation [ref=e15]:
+      - button "Início" [ref=e16] [cursor=pointer]:
+        - img [ref=e17]
+        - generic [ref=e20]: Início
+      - button "Operacional" [active] [ref=e21] [cursor=pointer]:
+        - img [ref=e22]
+        - generic [ref=e27]: Operacional
+      - button "Agentes" [ref=e28] [cursor=pointer]:
+        - img [ref=e29]
+        - generic [ref=e39]: Agentes
+      - button "Database" [ref=e40] [cursor=pointer]:
+        - img [ref=e41]
+        - generic [ref=e45]: Database
+      - button "Endpoints" [ref=e46] [cursor=pointer]:
+        - img [ref=e47]
+        - generic [ref=e49]: Endpoints
+      - button "Heartbeat" [ref=e50] [cursor=pointer]:
+        - img [ref=e51]
+        - generic [ref=e53]: Heartbeat
+      - button "Histórico" [ref=e54] [cursor=pointer]:
+        - img [ref=e55]
+        - generic [ref=e59]: Histórico
+    - generic [ref=e63]: glm 5.1 cloud
+    - button [ref=e64] [cursor=pointer]:
+      - img [ref=e65]
+  - main [ref=e67]:
+    - generic [ref=e68]:
+      - generic [ref=e69]: centro operacional da missão
+      - generic [ref=e71]: glm 5.1 cloud
+    - generic [ref=e142]:
+      - generic [ref=e143]:
+        - button "desligado" [ref=e144] [cursor=pointer]:
+          - img [ref=e145]
+          - generic [ref=e147]: desligado
+        - button "heartbeat" [ref=e150] [cursor=pointer]:
+          - generic [ref=e154]: heartbeat
+        - button "database" [ref=e156] [cursor=pointer]:
+          - img "database" [ref=e158]
+          - generic [ref=e160]: database
+        - button "maestro" [ref=e162] [cursor=pointer]:
+          - img "maestro" [ref=e164]
+          - generic [ref=e166]: maestro
+        - button "transformador de missão" [ref=e168] [cursor=pointer]:
+          - img "transformador de missão" [ref=e170]
+          - generic [ref=e172]: transformador de missão
+        - button "planejador" [ref=e174] [cursor=pointer]:
+          - img "planejador" [ref=e176]
+          - generic [ref=e178]: planejador
+        - button "pesquisador" [ref=e180] [cursor=pointer]:
+          - img "pesquisador" [ref=e182]
+          - generic [ref=e184]: pesquisador
+        - button "designer" [ref=e186] [cursor=pointer]:
+          - img "designer" [ref=e188]
+          - generic [ref=e190]: designer
+      - generic [ref=e191]:
+        - generic [ref=e193]:
+          - generic [ref=e194]:
+            - img
+            - heading "Supervisor" [level=3] [ref=e196]
+            - generic [ref=e197]: ready
+            - button "copiar log do supervisor" [ref=e198] [cursor=pointer]:
+              - img [ref=e199]
+              - text: copiar
+          - generic [ref=e202]:
+            - paragraph [ref=e203]: logs do agente
+            - paragraph [ref=e204]: "cloud: supervisor conectado ao GLM 5.1"
+            - paragraph [ref=e205]: "[20:42:06] Supervisor: Gerar canvas executivo de telemetria rural e sinistros (CSV) por talhão para a Fazenda Aurora, visando apoiar decisão de underwriting e apresentação Sompo."
+            - paragraph [ref=e206]: "[20:42:06] Supervisor Executivo: Veredito: Aprovar renovação condicionada à execução de vistoria. Proxima acao: Solicitar validação de campo. Pendencia critica: Confirmar valores de risco máximo provável para ajuste de limite."
+            - paragraph [ref=e207]: "[20:42:06] Supervisor: Veredito: Renovação da apólice condicionada à execução de vistoria técnica nos talhões críticos e validação de dados financeiros pendentes. Telemetria viabiliza precificação defensável."
+            - paragraph [ref=e208]: "[20:42:06] Supervisor: Verificacao aprovada: A análise atende aos critérios ao citar evidências de telemetria e CSV, priorizar os talhões em um ranking de risco e fechar com um veredito de aprovação condicionada à vistoria técnica."
+            - paragraph [ref=e209]: "[18:07:09] heartbeat: monitor ligado"
+            - paragraph [ref=e210]: "[18:07:09] heartbeat: monitor pausado"
+            - paragraph [ref=e211]: "[18:12:32] mission: mauda um salve no chat"
+            - paragraph [ref=e212]: "[18:12:51] chat: mauda um salve no chat"
+            - paragraph [ref=e213]: "[18:13:25] state: missao resetada"
+            - paragraph [ref=e214]: "[18:13:44] mission: mauda um salve no chat"
+            - paragraph [ref=e215]: "[18:13:51] chat: mauda um salve no chat"
+            - paragraph [ref=e216]: "[18:30:38] mission: manda umas dicas de culinaria"
+            - paragraph [ref=e217]: "[18:31:02] chat: manda umas dicas de culinaria"
+            - paragraph [ref=e218]: "[19:36:57] state: missao resetada"
+            - paragraph [ref=e219]: "[19:36:57] mission: chat seguradora"
+            - paragraph [ref=e220]: "[19:38:32] mission: Caso Sompo rural"
+            - paragraph [ref=e221]: "[19:38:33] mission: Caso Sompo rural"
+            - paragraph [ref=e222]: "[19:38:37] mission: Caso Sompo rural"
+            - paragraph [ref=e223]: "[19:39:02] mission: chat multiagente rural"
+            - paragraph [ref=e224]: "[19:39:44] chat: chat multiagente rural"
+            - paragraph [ref=e225]: "[19:42:03] mission: Briefing Sompo telemetria rural"
+            - paragraph [ref=e226]: "[19:42:03] harness.smoke"
+            - paragraph [ref=e227]: "[19:44:03] state: missao resetada"
+            - paragraph [ref=e228]: "[20:40:15] state: missao resetada"
+            - paragraph [ref=e229]: "[20:40:17] mission: Sompo telemetria rural"
+            - paragraph [ref=e230]: "[20:42:06] verifier: aprovado"
+            - paragraph [ref=e231]: "[20:42:58] mission: Chat operacional Sompo"
+            - paragraph [ref=e232]: "[20:44:15] mission: Chat Sompo curto"
+            - paragraph [ref=e233]: $ _
+        - generic [ref=e235]:
+          - generic [ref=e236]:
+            - heading "Canvas da Missão" [level=3] [ref=e237]
+            - generic [ref=e238]: Sompo telemetria rural
+            - button "Copiar relatório" [ref=e239] [cursor=pointer]:
+              - img [ref=e240]
+              - text: Copiar relatório
+          - generic [ref=e245]:
+            - generic [ref=e246]:
+              - text: canvas
+              - heading "Canvas Executivo - Fazenda Aurora" [level=2] [ref=e247]
+              - paragraph [ref=e248]: Análise de Risco e Sinistros por Talhão via Telemetria
+            - generic [ref=e249]:
+              - article [ref=e251]:
+                - heading "Dor e evidencias" [level=3] [ref=e252]
+                - generic [ref=e253]:
+                  - generic [ref=e254]: Concentração de Sinistros
+                  - generic [ref=e255]: Telemetria Anômala
+              - article [ref=e257]:
+                - heading "Ranking de risco" [level=3] [ref=e258]
+                - generic [ref=e259]:
+                  - generic [ref=e260]:
+                    - generic [ref=e261]: Talhão Norte
+                    - strong [ref=e264]: "9"
+                  - generic [ref=e265]:
+                    - generic [ref=e266]: Talhão Sul
+                    - strong [ref=e269]: "7"
+                  - generic [ref=e270]:
+                    - generic [ref=e271]: Demais Talhões
+                    - strong [ref=e274]: "2"
+              - article [ref=e276]:
+                - heading "Plano preventivo" [level=3] [ref=e277]
+                - generic [ref=e278]:
+                  - generic [ref=e279]: Vistoria Pré-Plantio
+                  - generic [ref=e280]: Obrigação de Manejo
+              - article [ref=e282]:
+                - heading "Valor para seguradora" [level=3] [ref=e283]
+                - paragraph [ref=e284]: Permite precificação ajustada ao risco real e evita perdas severas. Valores financeiros de exposição estão pendentes de validação do CSV.
+                - list [ref=e285]:
+                  - listitem [ref=e286]:
+                    - generic [ref=e287]: •
+                    - text: Precificação Ajustada
+              - article [ref=e289]:
+                - heading "Criterio de sucesso" [level=3] [ref=e290]
+                - paragraph [ref=e291]: A Sompo validará a eficácia quando os talhões críticos forem vistoriados e o limite de sinistralidade for controlado.
+                - list [ref=e292]:
+                  - listitem [ref=e293]:
+                    - generic [ref=e294]: •
+                    - text: Vistoria Concluída
+        - generic [ref=e296]:
+          - generic [ref=e297]:
+            - img
+            - heading "Comunicação" [level=3] [ref=e299]
+            - generic [ref=e300]: glm
+            - button "copiar log do chat" [ref=e301] [cursor=pointer]:
+              - img [ref=e302]
+              - text: copiar
+          - generic [ref=e305]:
+            - article [ref=e306]:
+              - generic [ref=e307]:
+                - strong [ref=e308]: Maestro
+                - generic [ref=e309]: sistema
+                - time [ref=e310]: 20:42:06
+              - paragraph [ref=e312]: Missao processada por glm-5.1 em runtime cloud real.
+            - article [ref=e313]:
+              - generic [ref=e314]:
+                - strong [ref=e315]: Supervisor
+                - generic [ref=e316]: decisao
+                - time [ref=e317]: 20:42:06
+              - paragraph [ref=e319]: Gerar canvas executivo de telemetria rural e sinistros (CSV) por talhão para a Fazenda Aurora, visando apoiar decisão de underwriting e apresentação Sompo.
+            - article [ref=e320]:
+              - generic [ref=e321]:
+                - strong [ref=e322]: Transformador de Missao
+                - generic [ref=e323]: info
+                - time [ref=e324]: 20:42:06
+              - paragraph [ref=e326]: "Objetivo: Avaliar risco agrícola na Fazenda Aurora via telemetria e sinistros. Decisao esperada: Aprovar, restringir ou condicionar cobertura. Criterio de sucesso: Mapeamento claro de talhões críticos e definição de ação de mitigação."
+            - article [ref=e327]:
+              - generic [ref=e328]:
+                - strong [ref=e329]: Pesquisador de Evidencias
+                - generic [ref=e330]: resultado
+                - time [ref=e331]: 20:42:06
+              - paragraph [ref=e333]: "Evidencia: Dados de telemetria rural e CSV de sinistros da Fazenda Aurora indicando falhas localizadas. Lacuna critica: Valores financeiros de exposição e limites de tolerância (necessita CSV completo). Risco principal: Concentração de sinistros em talhões específicos sugerindo vulnerabilidade sistemática."
+            - article [ref=e334]:
+              - generic [ref=e335]:
+                - strong [ref=e336]: Planejador Operacional
+                - generic [ref=e337]: acao
+                - time [ref=e338]: 20:42:06
+              - paragraph [ref=e340]: "Prioridade: 1. Triagem de talhões com anomalias. Acao imediata: Agendar vistoria técnica preventiva nos talhões críticos antes do próximo ciclo. Dono sugerido: Equipe de Underwriting Agrícola Sompo."
+            - article [ref=e341]:
+              - generic [ref=e342]:
+                - strong [ref=e343]: Designer Executivo
+                - generic [ref=e344]: resultado
+                - time [ref=e345]: 20:42:06
+              - paragraph [ref=e347]: "Leitura executiva: O cruzamento de dados aponta risco operacional segmentado, exigindo ação direcionada. Mensagem-chave: Risco segmentado permite precificação ajustada ou exigência de plano de manejo, protegendo a carteira da Sompo."
+            - article [ref=e348]:
+              - generic [ref=e349]:
+                - strong [ref=e350]: Supervisor Executivo
+                - generic [ref=e351]: decisao
+                - time [ref=e352]: 20:42:06
+              - paragraph [ref=e354]: "Veredito: Aprovar renovação condicionada à execução de vistoria. Proxima acao: Solicitar validação de campo. Pendencia critica: Confirmar valores de risco máximo provável para ajuste de limite."
+            - article [ref=e355]:
+              - generic [ref=e356]:
+                - strong [ref=e357]: Supervisor
+                - generic [ref=e358]: resultado
+                - time [ref=e359]: 20:42:06
+              - paragraph [ref=e361]: "Veredito: Renovação da apólice condicionada à execução de vistoria técnica nos talhões críticos e validação de dados financeiros pendentes. Telemetria viabiliza precificação defensável."
+            - article [ref=e362]:
+              - generic [ref=e363]:
+                - strong [ref=e364]: Supervisor
+                - generic [ref=e365]: resultado
+                - time [ref=e366]: 20:42:06
+              - paragraph [ref=e368]: "Verificacao aprovada: A análise atende aos critérios ao citar evidências de telemetria e CSV, priorizar os talhões em um ranking de risco e fechar com um veredito de aprovação condicionada à vistoria técnica."
+      - generic [ref=e369]:
+        - generic [ref=e370]:
+          - textbox "Descreva a missão" [ref=e372]:
+            - /placeholder: Descreva a missão para os agentes...
+          - button "Resetar" [ref=e373] [cursor=pointer]:
+            - img [ref=e374]
+            - text: Resetar
+          - button "Ativar" [disabled] [ref=e377]:
+            - img [ref=e378]
+            - text: Ativar
+        - generic [ref=e380]:
+          - generic [ref=e382]: missão concluída
+          - generic [ref=e383]:
+            - generic [ref=e384]: online
+            - generic [ref=e386]: db 3
+            - generic [ref=e388]: idle

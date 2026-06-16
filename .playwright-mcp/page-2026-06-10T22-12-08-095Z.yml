@@ -1,0 +1,175 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - img [ref=e8]
+      - generic [ref=e12]:
+        - heading "LUC.AI" [level=1] [ref=e13]
+        - generic [ref=e14]: centro operacional
+    - navigation [ref=e15]:
+      - button "Início" [ref=e16] [cursor=pointer]:
+        - img [ref=e17]
+        - generic [ref=e20]: Início
+      - button "Operacional" [ref=e21] [cursor=pointer]:
+        - img [ref=e22]
+        - generic [ref=e27]: Operacional
+      - button "Agentes" [ref=e28] [cursor=pointer]:
+        - img [ref=e29]
+        - generic [ref=e39]: Agentes
+      - button "Database" [ref=e40] [cursor=pointer]:
+        - img [ref=e41]
+        - generic [ref=e45]: Database
+      - button "Ferramentas" [ref=e46] [cursor=pointer]:
+        - img [ref=e47]
+        - generic [ref=e49]: Ferramentas
+      - button "Endpoints" [ref=e50] [cursor=pointer]:
+        - img [ref=e51]
+        - generic [ref=e53]: Endpoints
+      - button "Heartbeat" [active] [ref=e54] [cursor=pointer]:
+        - img [ref=e55]
+        - generic [ref=e57]: Heartbeat
+      - button "Histórico" [ref=e58] [cursor=pointer]:
+        - img [ref=e59]
+        - generic [ref=e63]: Histórico
+    - generic [ref=e67]: glm 5.1 cloud
+    - button [ref=e68] [cursor=pointer]:
+      - img [ref=e69]
+  - main [ref=e71]:
+    - generic [ref=e72]:
+      - generic [ref=e73]: o pulso vital do sistema
+      - generic [ref=e75]: glm 5.1 cloud
+    - generic [ref=e147]:
+      - generic [ref=e148]:
+        - generic [ref=e149]:
+          - img [ref=e151]
+          - generic [ref=e153]:
+            - heading "Heartbeat" [level=1] [ref=e154]
+            - paragraph [ref=e155]: o pulso vital do sistema
+        - generic [ref=e156]:
+          - button "play" [ref=e157] [cursor=pointer]:
+            - img [ref=e158]
+            - text: play
+          - button "pause" [ref=e160] [cursor=pointer]:
+            - img [ref=e161]
+            - text: pause
+          - button "diagnóstico" [ref=e164] [cursor=pointer]:
+            - img [ref=e165]
+            - text: diagnóstico
+          - button "limpar" [ref=e168] [cursor=pointer]:
+            - img [ref=e169]
+            - text: limpar
+      - generic [ref=e172]:
+        - generic [ref=e173]:
+          - text: monitor
+          - strong [ref=e176]: stale
+        - generic [ref=e177]:
+          - text: último tick
+          - strong [ref=e178]: 2026-06-10T22:11:45.517Z
+        - generic [ref=e179]:
+          - text: eventos
+          - strong [ref=e182]: "37"
+          - paragraph [ref=e183]: harness.smoke
+        - generic [ref=e184]:
+          - text: goals
+          - generic [ref=e185]:
+            - strong [ref=e186]: "1"
+            - generic [ref=e187]: abertos
+          - paragraph [ref=e188]: 1 pendentes • 0 em execução
+      - generic [ref=e189]:
+        - generic [ref=e190]:
+          - strong [ref=e191]: agentes
+          - generic [ref=e192]:
+            - generic [ref=e193]:
+              - generic [ref=e194]: Supervisor
+              - generic [ref=e195]: ready
+            - generic [ref=e196]:
+              - generic [ref=e197]: Planejador
+              - generic [ref=e198]: ready
+            - generic [ref=e199]:
+              - generic [ref=e200]: Pesquisador
+              - generic [ref=e201]: ready
+            - generic [ref=e202]:
+              - generic [ref=e203]: Designer
+              - generic [ref=e204]: ready
+          - generic [ref=e205]:
+            - strong [ref=e206]: event store
+            - generic [ref=e207]:
+              - generic [ref=e208]:
+                - generic [ref=e209]: mission.started
+                - generic [ref=e210]: "18"
+              - generic [ref=e211]:
+                - generic [ref=e212]: mission.completed
+                - generic [ref=e213]: "5"
+              - generic [ref=e214]:
+                - generic [ref=e215]: state.reset
+                - generic [ref=e216]: "4"
+              - generic [ref=e217]:
+                - generic [ref=e218]: mission.chat_completed
+                - generic [ref=e219]: "4"
+              - generic [ref=e220]:
+                - generic [ref=e221]: harness.smoke
+                - generic [ref=e222]: "2"
+              - generic [ref=e223]:
+                - generic [ref=e224]: mission.failed
+                - generic [ref=e225]: "1"
+          - generic [ref=e226]:
+            - strong [ref=e227]: governança
+            - generic [ref=e228]:
+              - generic [ref=e229]:
+                - generic [ref=e230]:
+                  - generic [ref=e231]: concorrência
+                  - generic [ref=e232]: 9 aberta(s)
+                - paragraph [ref=e233]: "última: Sompo top 5 underwriting"
+              - generic [ref=e234]:
+                - generic [ref=e235]:
+                  - generic [ref=e236]: ações irreversíveis
+                  - generic [ref=e237]: "3"
+                - paragraph [ref=e238]: deploy em producao, mutacao de runtime publicado, missao live concorrente
+              - generic [ref=e239]:
+                - generic [ref=e240]: budget padrão
+                - paragraph [ref=e241]: 12 iterações • 300s • 40 tools
+              - generic [ref=e242]: Comandos destrutivos e execucao remota por pipe permanecem bloqueados por politica.
+              - generic [ref=e243]: Acoes irreversiveis so devem ocorrer depois de checks verdes e sem missao concorrente.
+              - generic [ref=e244]: Feed recente mostra mission.started sem fechamento correspondente; nao iniciar outra missao live.
+              - generic [ref=e245]: Segredos nao devem entrar em logs, payloads ou UI publica.
+        - generic [ref=e246]:
+          - generic [ref=e247]:
+            - paragraph [ref=e248]: $ heartbeat monitor stale
+            - paragraph [ref=e249]: "[18:30:38] mission: manda umas dicas de culinaria"
+            - paragraph [ref=e250]: "[18:31:02] chat: manda umas dicas de culinaria"
+            - paragraph [ref=e251]: "[19:36:57] state: missao resetada"
+            - paragraph [ref=e252]: "[19:36:57] mission: chat seguradora"
+            - paragraph [ref=e253]: "[19:38:32] mission: Caso Sompo rural"
+            - paragraph [ref=e254]: "[19:38:33] mission: Caso Sompo rural"
+            - paragraph [ref=e255]: "[19:38:37] mission: Caso Sompo rural"
+            - paragraph [ref=e256]: "[19:39:02] mission: chat multiagente rural"
+            - paragraph [ref=e257]: "[19:39:44] chat: chat multiagente rural"
+            - paragraph [ref=e258]: "[19:42:03] mission: Briefing Sompo telemetria rural"
+            - paragraph [ref=e259]: "[19:42:03] harness.smoke"
+            - paragraph [ref=e260]: "[19:44:03] state: missao resetada"
+            - paragraph [ref=e261]: "[20:40:15] state: missao resetada"
+            - paragraph [ref=e262]: "[20:40:17] mission: Sompo telemetria rural"
+            - paragraph [ref=e263]: "[20:42:06] verifier: aprovado"
+            - paragraph [ref=e264]: "[20:42:58] mission: Chat operacional Sompo"
+            - paragraph [ref=e265]: "[20:44:15] mission: Chat Sompo curto"
+            - paragraph [ref=e266]: "[20:45:21] verifier: reprovado"
+            - paragraph [ref=e267]: "[20:49:18] mission: Chat Sompo validado"
+            - paragraph [ref=e268]: "[20:50:37] error: Durable Object reset because its code was updated."
+            - paragraph [ref=e269]: "[20:50:48] mission: Chat Sompo validado"
+            - paragraph [ref=e270]: "[20:51:52] verifier: aprovado"
+            - paragraph [ref=e271]: "[21:09:52] mission: Caso Sompo rural"
+            - paragraph [ref=e272]: "[21:09:54] mission: Caso Sompo rural"
+            - paragraph [ref=e273]: "[21:11:50] verifier: aprovado"
+            - paragraph [ref=e274]: "[21:11:57] verifier: aprovado"
+            - paragraph [ref=e275]: "[21:34:41] goal.created"
+            - paragraph [ref=e276]: "[21:54:31] mission: Sompo validacao pos-fallback"
+            - paragraph [ref=e277]: "[21:56:44] mission: Sompo top 5 underwriting"
+            - paragraph [ref=e278]: "[22:09:53] harness.smoke"
+          - generic [ref=e279]:
+            - generic [ref=e280]:
+              - strong [ref=e281]: goals recentes
+              - generic [ref=e282]: 1 registrados
+            - generic [ref=e284]:
+              - generic [ref=e285]:
+                - generic [ref=e286]: Verificar goals pos-deploy
+                - generic [ref=e287]: pending
+              - paragraph [ref=e288]: Confirmar API /api/goals e resumo no heartbeat

@@ -1,0 +1,83 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - img [ref=e8]
+      - generic [ref=e12]:
+        - heading "LUC.AI" [level=1] [ref=e13]
+        - generic [ref=e14]: centro operacional
+    - navigation [ref=e15]:
+      - button "Início" [active] [ref=e16] [cursor=pointer]:
+        - img [ref=e17]
+        - generic [ref=e20]: Início
+      - button "Operacional" [ref=e21] [cursor=pointer]:
+        - img [ref=e22]
+        - generic [ref=e27]: Operacional
+      - button "Agentes" [ref=e28] [cursor=pointer]:
+        - img [ref=e29]
+        - generic [ref=e39]: Agentes
+      - button "Database" [ref=e40] [cursor=pointer]:
+        - img [ref=e41]
+        - generic [ref=e45]: Database
+      - button "Ferramentas" [ref=e46] [cursor=pointer]:
+        - img [ref=e47]
+        - generic [ref=e49]: Ferramentas
+      - button "Endpoints" [ref=e50] [cursor=pointer]:
+        - img [ref=e51]
+        - generic [ref=e53]: Endpoints
+      - button "Heartbeat" [ref=e54] [cursor=pointer]:
+        - img [ref=e55]
+        - generic [ref=e57]: Heartbeat
+      - button "Histórico" [ref=e58] [cursor=pointer]:
+        - img [ref=e59]
+        - generic [ref=e63]: Histórico
+    - generic [ref=e67]: glm 5.1 cloud
+    - button [ref=e68] [cursor=pointer]:
+      - img [ref=e69]
+  - main [ref=e71]:
+    - generic [ref=e72]:
+      - generic [ref=e73]: apresentação do centro
+      - generic [ref=e75]: glm 5.1 cloud
+    - generic [ref=e144]:
+      - generic [ref=e145]:
+        - generic [ref=e146]:
+          - generic:
+            - img
+            - img
+            - generic:
+              - img "LUCA owl"
+            - img
+        - generic [ref=e148]:
+          - heading "LUC.AI" [level=1] [ref=e149]
+          - paragraph [ref=e150]: sompo sprint 2
+          - paragraph [ref=e151]: Centro operacional para transformar CSV, telemetria rural e risco de sinistro em um canvas executivo apresentável.
+        - generic [ref=e152]:
+          - button "Centro Operacional" [ref=e153] [cursor=pointer]
+          - button "Rodar Caso Sompo" [ref=e154] [cursor=pointer]
+      - generic [ref=e155]:
+        - generic [ref=e157]:
+          - img [ref=e160]
+          - generic [ref=e170]:
+            - generic [ref=e171]: "5"
+            - generic [ref=e172]: Agentes
+            - generic [ref=e173]: corujas no esquadrão
+        - generic [ref=e175]:
+          - img [ref=e178]
+          - generic [ref=e180]:
+            - generic [ref=e181]: ativa
+            - generic [ref=e182]: Missão
+            - generic [ref=e183]: aguardando comando
+        - generic [ref=e185]:
+          - img [ref=e188]
+          - generic [ref=e192]:
+            - generic [ref=e193]: "4"
+            - generic [ref=e194]: Database
+            - generic [ref=e195]: itens registrados
+        - generic [ref=e197]:
+          - img [ref=e200]
+          - generic [ref=e202]:
+            - generic [ref=e203]: cloud
+            - generic [ref=e204]: Runtime
+            - generic [ref=e205]: glm 5.1 real
+      - generic [ref=e206]:
+        - paragraph [ref=e208]: Missão ativa. Abra o Centro Operacional para acompanhar o canvas e o log do supervisor.
+        - generic [ref=e209]: em operação

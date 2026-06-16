@@ -1,0 +1,82 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - img [ref=e8]
+      - generic [ref=e12]:
+        - heading "LUC.AI" [level=1] [ref=e13]
+        - generic [ref=e14]: centro operacional
+    - navigation [ref=e15]:
+      - button "Início" [ref=e16] [cursor=pointer]:
+        - img [ref=e17]
+        - generic [ref=e20]: Início
+      - button "Operacional" [ref=e21] [cursor=pointer]:
+        - img [ref=e22]
+        - generic [ref=e27]: Operacional
+      - button "Agentes" [ref=e28] [cursor=pointer]:
+        - img [ref=e29]
+        - generic [ref=e39]: Agentes
+      - button "Database" [ref=e40] [cursor=pointer]:
+        - img [ref=e41]
+        - generic [ref=e45]: Database
+      - button "Ferramentas" [ref=e46] [cursor=pointer]:
+        - img [ref=e47]
+        - generic [ref=e49]: Ferramentas
+      - button "Endpoints" [ref=e50] [cursor=pointer]:
+        - img [ref=e51]
+        - generic [ref=e53]: Endpoints
+      - button "Heartbeat" [ref=e54] [cursor=pointer]:
+        - img [ref=e55]
+        - generic [ref=e57]: Heartbeat
+      - button "Histórico" [ref=e58] [cursor=pointer]:
+        - img [ref=e59]
+        - generic [ref=e63]: Histórico
+    - generic [ref=e67]: conectando cloud
+    - button [ref=e68] [cursor=pointer]:
+      - img [ref=e69]
+  - main [ref=e71]:
+    - generic [ref=e72]:
+      - generic [ref=e73]: as três camadas do conhecimento
+      - generic [ref=e75]: glm 5.1 cloud
+    - generic [ref=e79]:
+      - generic [ref=e80]:
+        - generic [ref=e81]:
+          - heading "Database" [level=1] [ref=e82]
+          - paragraph [ref=e83]: database indisponivel
+        - link "índice obsidian" [ref=e84] [cursor=pointer]:
+          - /url: obsidian://open?vault=LUCA-AI&file=Index
+          - img [ref=e85]
+          - text: índice obsidian
+      - generic [ref=e89]:
+        - button "01 0 pesquisa bruta" [ref=e90] [cursor=pointer]:
+          - generic [ref=e91]:
+            - generic [ref=e92]: "01"
+            - generic [ref=e93]: "0"
+          - strong [ref=e94]: pesquisa bruta
+        - button "02 0 processamento" [ref=e95] [cursor=pointer]:
+          - generic [ref=e96]:
+            - generic [ref=e97]: "02"
+            - generic [ref=e98]: "0"
+          - strong [ref=e99]: processamento
+        - button "03 0 pós-processamento" [ref=e100] [cursor=pointer]:
+          - generic [ref=e101]:
+            - generic [ref=e102]: "03"
+            - generic [ref=e103]: "0"
+          - strong [ref=e104]: pós-processamento
+      - generic [ref=e105]:
+        - complementary [ref=e106]:
+          - generic [ref=e107]:
+            - generic [ref=e108]: camada 03
+            - heading "pós-processamento" [level=3] [ref=e109]
+            - paragraph [ref=e110]: Conteúdo claro e aprovado para pessoas de diferentes áreas.
+            - generic [ref=e111]:
+              - generic [ref=e112]:
+                - strong [ref=e113]: vazio
+                - text: status
+              - generic [ref=e114]:
+                - strong [ref=e115]: visível após curadoria
+                - text: visibilidade
+            - link "abrir no obsidian" [ref=e116] [cursor=pointer]:
+              - /url: obsidian://open?vault=LUCA-AI&file=Camada+03+-+Canvas
+        - generic [ref=e118]:
+          - heading "camada vazia" [level=4] [ref=e119]
+          - paragraph [ref=e120]: aguardando preenchimento
