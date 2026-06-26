@@ -1,0 +1,71 @@
+{
+  "brand": {
+    "name": "TARS",
+    "vendor": "LucasOl1337",
+    "footer": "RUNTIME LOCAL DE AGENTE",
+    "masthead": "NOTAS DA ATUALIZACAO",
+    "footerLeft": "Lista completa das notas no GitHub Releases",
+    "bgGradient": ["#111827", "#172033", "#263244"],
+    "pillGradient": ["#2563EB", "#14B8A6"]
+  },
+  "version": "v0.1.0",
+  "date": "22 de junho de 2026 · Release oficial",
+  "categories": [
+    {
+      "label": "Novidades",
+      "title": "NOVIDADES",
+      "color": "#FBBF24",
+      "items": [
+        {
+          "name": "Runtime agentico local",
+          "desc": "goals, steps, heartbeat e kill-switch pela API local",
+          "tag": "BACKEND"
+        },
+        {
+          "name": "Dashboard operacional",
+          "desc": "React/Vite para runtime, engines, tools, missions e voz",
+          "tag": "DASHBOARD"
+        },
+        {
+          "name": "Landing publica",
+          "desc": "site Vite separado com assets publicos da marca",
+          "tag": "SITE"
+        }
+      ]
+    },
+    {
+      "label": "Melhorias",
+      "title": "MELHORIAS",
+      "color": "#34D399",
+      "items": [
+        {
+          "name": "Prompt e persona compostos",
+          "desc": "persona e regras montam o system prompt",
+          "tag": "AGENTE"
+        },
+        {
+          "name": "Tools declarativas em JSON",
+          "desc": "catalogo carregado pelo backend",
+          "tag": "TOOLS"
+        }
+      ]
+    },
+    {
+      "label": "Sistemas",
+      "title": "SISTEMAS",
+      "color": "#A78BFA",
+      "items": [
+        {
+          "name": "API canonica /api/tars",
+          "desc": "aliases /api/kamui mantem compatibilidade herdada",
+          "tag": "API"
+        },
+        {
+          "name": "Bridges opcionais",
+          "desc": "Yume, Kamui e VideoGen tem health polling e proxy",
+          "tag": "BRIDGES"
+        }
+      ]
+    }
+  ]
+}
